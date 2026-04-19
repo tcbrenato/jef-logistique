@@ -12,7 +12,25 @@ export default function SuperviseurPage() {
 
   useEffect(() => {
     checkSuperviseur()
+
+    const channel = supabase
+      .channel('tickets-realtime-superviseur')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => { fetchData() }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   }, [])
+
+  const checkSuperviseur = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) { router.push('/login'); return }
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
+    if (!profile || !['superviseur', 'admin'].includes(profile.role)) { router.push('/login'); return }
+    fetchData()
+  }
 
   const checkSuperviseur = async () => {
     const { data: { session } } = await supabase.auth.getSession()
