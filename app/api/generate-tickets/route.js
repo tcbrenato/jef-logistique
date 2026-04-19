@@ -24,16 +24,14 @@ export async function POST(request) {
     return NextResponse.json({ error: 'Aucun ticket trouve' }, { status: 400 })
   }
 
-  // A4 portrait en points (595 x 842)
   const A4_W = 595
   const A4_H = 842
 
-  // Template : 8.5po x 2.75po -> sur A4 on adapte
-  // Chaque ticket occupe 1/4 de la hauteur A4
-  const TICKET_W = A4_W          // toute la largeur
-  const TICKET_H = A4_H / 4      // quart de hauteur = 210.5 pts
+  // Marge pour les pointilles
+  const MARGIN = 8
+  const TICKET_H = (A4_H - (MARGIN * 5)) / 4
+  const TICKET_W = A4_W - (MARGIN * 2)
 
-  // Ratio de conversion : template 8.5po = 612pts -> notre largeur 595pts
   const RATIO_X = TICKET_W / (8.5 * 72)
   const RATIO_Y = TICKET_H / (2.75 * 72)
 
@@ -43,7 +41,6 @@ export async function POST(request) {
     format: 'a4'
   })
 
-  // Charger le template une seule fois
   const templatePath = path.join(process.cwd(), 'public', 'templateticket.png')
   const templateBase64 = fs.readFileSync(templatePath).toString('base64')
   const templateDataUrl = `data:image/png;base64,${templateBase64}`
@@ -55,14 +52,15 @@ export async function POST(request) {
     const label = `${serial}  |  C: ${code}`
     const qrUrl = `https://jef-logistique.vercel.app/verify/${serial}`
 
-    // Nouvelle page tous les 4 tickets
     if (i > 0 && i % 4 === 0) doc.addPage()
 
-    // Position verticale du ticket sur la page
-    const posY = (i % 4) * TICKET_H
+    const ticketIndex = i % 4
+
+    // Position Y avec marges entre tickets
+    const posY = MARGIN + ticketIndex * (TICKET_H + MARGIN)
 
     // Fond template
-    doc.addImage(templateDataUrl, 'PNG', 0, posY, TICKET_W, TICKET_H)
+    doc.addImage(templateDataUrl, 'PNG', MARGIN, posY, TICKET_W, TICKET_H)
 
     // QR Code vert
     const qrDataUrl = await QRCode.toDataURL(qrUrl, {
@@ -71,49 +69,66 @@ export async function POST(request) {
       color: { dark: '#1a5c05', light: '#ffffff' }
     })
 
-    // Position QR (X:5.08po, Y:1.5po, W:0.87po, H:0.84po)
-    const qrX = 5.08 * 72 * RATIO_X
+    const qrX = MARGIN + (5.08 * 72 * RATIO_X)
     const qrY = posY + (1.5 * 72 * RATIO_Y)
     const qrW = 0.87 * 72 * RATIO_X
     const qrH = 0.84 * 72 * RATIO_Y
     doc.addImage(qrDataUrl, 'PNG', qrX, qrY, qrW, qrH)
 
-    // Style texte — Courier (style machine à écrire)
+    // Texte style machine a ecrire
     doc.setFont('courier', 'bold')
     doc.setTextColor(20, 20, 20)
 
-    // Numéro souche droite extrême (X:7.52, Y:0.6)
+    // Numéro souche droite extreme
     doc.setFontSize(6)
     doc.text(serial,
-      7.52 * 72 * RATIO_X,
+      MARGIN + (7.52 * 72 * RATIO_X),
       posY + (0.65 * 72 * RATIO_Y)
     )
 
-    // Numéro souche milieu (X:6.43, Y:0.6)
+    // Numéro souche milieu
     doc.text(serial,
-      6.43 * 72 * RATIO_X,
+      MARGIN + (6.43 * 72 * RATIO_X),
       posY + (0.65 * 72 * RATIO_Y)
     )
 
-    // Numéro au-dessus QR (X:5.1, Y:1.39)
+    // Numéro au-dessus QR
     doc.setFontSize(5.5)
     doc.text(serial,
-      5.1 * 72 * RATIO_X,
+      MARGIN + (5.1 * 72 * RATIO_X),
       posY + (1.42 * 72 * RATIO_Y)
     )
 
-    // Bande sécurité 1 (X:2.48, Y:2.22)
+    // Bande securite 1
     doc.setFontSize(4.5)
     doc.text(label,
-      2.48 * 72 * RATIO_X,
+      MARGIN + (2.48 * 72 * RATIO_X),
       posY + (2.28 * 72 * RATIO_Y)
     )
 
-    // Bande sécurité 2 (X:4.05, Y:2.22)
+    // Bande securite 2
     doc.text(label,
-      4.05 * 72 * RATIO_X,
+      MARGIN + (4.05 * 72 * RATIO_X),
       posY + (2.28 * 72 * RATIO_Y)
     )
+
+    // Ligne pointillee de decoupe entre les tickets
+    if (ticketIndex < 3 && i < tickets.length - 1) {
+      const ligneY = posY + TICKET_H + (MARGIN / 2)
+
+      doc.setDrawColor(180, 180, 180)
+      doc.setLineWidth(0.4)
+      doc.setLineDashPattern([4, 3], 0)
+      doc.line(MARGIN, ligneY, A4_W - MARGIN, ligneY)
+      doc.setLineDashPattern([], 0)
+
+      // Ciseaux
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(180, 180, 180)
+      doc.text('✂', 2, ligneY + 2.5)
+      doc.setTextColor(20, 20, 20)
+    }
   }
 
   const pdfBuffer = Buffer.from(doc.output('arraybuffer'))
