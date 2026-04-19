@@ -100,9 +100,7 @@ export default function VerifyPage() {
           </div>
         )}
 
-        <button onClick={() => router.push('/login')} style={{ width: '100%', padding: '14px', borderRadius: 14, border: '1.5px solid #e5e7eb', background: 'white', color: '#6b7280', fontSize: 14, fontWeight: 600, cursor: 'pointer', marginTop: 16 }}>
-          Connexion espace equipe
-        </button>
+      
       </div>
     </div>
   )
