@@ -8,10 +8,41 @@
   padding: 0;
 }
 
+html, body {
+  width: 100%;
+  overflow-x: hidden;
+}
+
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #f4f4f4;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: #f0f2f5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Conteneur principal centré */
+#__next {
+  width: 100%;
   max-width: 430px;
   margin: 0 auto;
   min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Empêcher le zoom sur les inputs iOS */
+input, select, textarea {
+  font-size: 16px !important;
+}
+
+/* Scrollbar propre */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: #f0f2f5;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 99px;
 }
