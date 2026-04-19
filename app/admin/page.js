@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter } = 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 export default function AdminDashboard() {
@@ -13,6 +13,11 @@ export default function AdminDashboard() {
   const [newVendeur, setNewVendeur] = useState({ full_name: '', email: '', phone: '', password: '' })
   const [addLoading, setAddLoading] = useState(false)
   const [addMsg, setAddMsg] = useState('')
+  const [selectedVendeur, setSelectedVendeur] = useState(null)
+  const [editMode, setEditMode] = useState(null)
+  const [editData, setEditData] = useState({})
+  const [actionMsg, setActionMsg] = useState('')
+  const [newPassword, setNewPassword] = useState('')
 
   useEffect(() => { checkAdmin() }, [])
 
@@ -53,7 +58,7 @@ export default function AdminDashboard() {
 
   const generateTickets = async () => {
     const { data: existing } = await supabase.from('tickets').select('serial_number')
-    if (existing && existing.length > 0) { alert('Les tickets existent déjà !'); return }
+    if (existing && existing.length > 0) { alert('Les tickets existent deja !'); return }
     const tickets = []
     for (let i = 1; i <= 500; i++) {
       tickets.push({
@@ -63,7 +68,7 @@ export default function AdminDashboard() {
       })
     }
     const { error } = await supabase.from('tickets').insert(tickets)
-    if (!error) { alert('500 tickets générés avec succès !'); fetchData() }
+    if (!error) { alert('500 tickets generes avec succes !'); fetchData() }
     else alert('Erreur : ' + error.message)
   }
 
@@ -80,12 +85,79 @@ export default function AdminDashboard() {
     const result = await res.json()
     if (result.error) { setAddMsg('Erreur : ' + result.error) }
     else {
-      setAddMsg('Vendeur créé avec succès !')
+      setAddMsg('Vendeur cree avec succes !')
       setNewVendeur({ full_name: '', email: '', phone: '', password: '' })
       fetchData()
       setTimeout(() => { setShowAddVendeur(false); setAddMsg('') }, 1500)
     }
     setAddLoading(false)
+  }
+
+  // MODIFIER NOM / TELEPHONE
+  const handleEdit = async () => {
+    const { error } = await supabase
+      .from('profiles')
+      .update({ full_name: editData.full_name, phone: editData.phone })
+      .eq('id', selectedVendeur.id)
+    if (!error) {
+      setActionMsg('Profil mis a jour avec succes !')
+      fetchData()
+      setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500)
+    } else setActionMsg('Erreur : ' + error.message)
+  }
+
+  // REINITIALISER MOT DE PASSE
+  const handleResetPassword = async () => {
+    if (!newPassword || newPassword.length < 6) {
+      setActionMsg('Le mot de passe doit faire au moins 6 caracteres'); return
+    }
+    const res = await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'reset_password', userId: selectedVendeur.id, newPassword })
+    })
+    const result = await res.json()
+    if (result.error) setActionMsg('Erreur : ' + result.error)
+    else {
+      setActionMsg('Mot de passe reinitialise avec succes !')
+      setNewPassword('')
+      setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500)
+    }
+  }
+
+  // SUSPENDRE / REACTIVER
+  const handleSuspend = async (vendeur) => {
+    const newStatus = !vendeur.suspended
+    const { error } = await supabase
+      .from('profiles')
+      .update({ suspended: newStatus })
+      .eq('id', vendeur.id)
+    if (!error) {
+      setActionMsg(newStatus ? 'Vendeur suspendu !' : 'Vendeur reactive !')
+      fetchData()
+      if (selectedVendeur?.id === vendeur.id) {
+        setSelectedVendeur({ ...selectedVendeur, suspended: newStatus })
+      }
+      setTimeout(() => setActionMsg(''), 2000)
+    }
+  }
+
+  // SUPPRIMER
+  const handleDelete = async (vendeur) => {
+    if (!confirm(`Supprimer definitivement le compte de ${vendeur.full_name} ? Cette action est irreversible.`)) return
+    const res = await fetch('/api/admin-action', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_user', userId: vendeur.id })
+    })
+    const result = await res.json()
+    if (result.error) setActionMsg('Erreur : ' + result.error)
+    else {
+      setActionMsg('Compte supprime !')
+      setSelectedVendeur(null)
+      fetchData()
+      setTimeout(() => setActionMsg(''), 2000)
+    }
   }
 
   const pct = Math.round((stats.vendus / stats.total) * 100)
@@ -109,19 +181,16 @@ export default function AdminDashboard() {
             <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 11, fontWeight: 700, letterSpacing: 1.5, margin: 0 }}>ADMIN CONSOLE</p>
             <h1 style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: '3px 0 0', letterSpacing: '-0.5px' }}>JEF 2026</h1>
           </div>
-          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '9px 16px', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer', letterSpacing: 0.3 }}>
+          <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '9px 16px', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
             Quitter
           </button>
         </div>
-
-        {/* TABS */}
         <div style={{ display: 'flex', gap: 2 }}>
           {[['dashboard', 'Apercu'], ['vendeurs', 'Vendeurs'], ['tickets', 'Tickets']].map(([key, label]) => (
-            <button key={key} onClick={() => setActiveTab(key)} style={{
+            <button key={key} onClick={() => { setActiveTab(key); setSelectedVendeur(null); setEditMode(null) }} style={{
               flex: 1, padding: '11px 0', border: 'none', background: 'transparent',
               color: activeTab === key ? 'white' : 'rgba(255,255,255,0.5)',
-              fontWeight: activeTab === key ? 800 : 500,
-              fontSize: 14, cursor: 'pointer',
+              fontWeight: activeTab === key ? 800 : 500, fontSize: 14, cursor: 'pointer',
               borderBottom: activeTab === key ? '3px solid white' : '3px solid transparent',
               transition: 'all 0.2s'
             }}>{label}</button>
@@ -134,17 +203,15 @@ export default function AdminDashboard() {
         {/* ===== APERCU ===== */}
         {activeTab === 'dashboard' && (
           <div>
-            {/* Jauge */}
             <div style={{ background: 'white', borderRadius: 20, padding: '24px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
                 <div>
                   <p style={{ color: '#9ca3af', fontSize: 11, fontWeight: 700, letterSpacing: 1, margin: '0 0 6px' }}>REMPLISSAGE GLOBAL</p>
                   <p style={{ color: '#111', fontSize: 36, fontWeight: 900, margin: 0, letterSpacing: '-1px' }}>
-                    {stats.vendus}
-                    <span style={{ fontSize: 16, color: '#9ca3af', fontWeight: 500 }}> / 500</span>
+                    {stats.vendus}<span style={{ fontSize: 16, color: '#9ca3af', fontWeight: 500 }}> / 500</span>
                   </p>
                 </div>
-                <div style={{ background: pct >= 80 ? '#dcfce7' : pct >= 50 ? '#fef9c3' : '#f0f2f5', borderRadius: 14, padding: '10px 16px', textAlign: 'center' }}>
+                <div style={{ background: pct >= 80 ? '#dcfce7' : pct >= 50 ? '#fef9c3' : '#f0f2f5', borderRadius: 14, padding: '10px 16px' }}>
                   <p style={{ margin: 0, fontSize: 24, fontWeight: 900, color: pct >= 80 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#308B0A' }}>{pct}%</p>
                 </div>
               </div>
@@ -156,23 +223,19 @@ export default function AdminDashboard() {
                 <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>500 places</span>
               </div>
             </div>
-
-            {/* 4 cartes stats */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: 'Tickets vendus', value: stats.vendus, color: '#308B0A', bg: '#f0fdf4', border: '#bbf7d0' },
                 { label: 'A bord', value: stats.embarques, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
                 { label: 'Disponibles', value: stats.disponibles, color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-                { label: 'Vendeurs actifs', value: vendeurs.length, color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
+                { label: 'Vendeurs actifs', value: vendeurs.filter(v => !v.suspended).length, color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
               ].map((card, i) => (
                 <div key={i} style={{ background: card.bg, borderRadius: 16, padding: '18px 16px', border: `1px solid ${card.border}` }}>
                   <p style={{ color: '#6b7280', fontSize: 10, fontWeight: 700, margin: '0 0 8px', letterSpacing: 0.8 }}>{card.label.toUpperCase()}</p>
-                  <p style={{ color: card.color, fontSize: 28, fontWeight: 900, margin: 0, letterSpacing: '-0.5px' }}>{card.value}</p>
+                  <p style={{ color: card.color, fontSize: 28, fontWeight: 900, margin: 0 }}>{card.value}</p>
                 </div>
               ))}
             </div>
-
-            {/* Caisse */}
             <div style={{ background: 'linear-gradient(135deg, #308B0A, #1e5c06)', borderRadius: 20, padding: '22px 24px' }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: 1.5 }}>CAISSE TOTALE PREVISION</p>
               <p style={{ margin: '8px 0 4px', fontSize: 32, fontWeight: 900, color: 'white', letterSpacing: '-1px' }}>
@@ -184,9 +247,14 @@ export default function AdminDashboard() {
         )}
 
         {/* ===== VENDEURS ===== */}
-        {activeTab === 'vendeurs' && (
+        {activeTab === 'vendeurs' && !selectedVendeur && (
           <div>
-            <button onClick={() => setShowAddVendeur(!showAddVendeur)} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 14, letterSpacing: 0.3, boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
+            {actionMsg && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{actionMsg}</p>
+              </div>
+            )}
+            <button onClick={() => setShowAddVendeur(!showAddVendeur)} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginBottom: 14, boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
               + Ajouter un vendeur
             </button>
 
@@ -194,8 +262,8 @@ export default function AdminDashboard() {
               <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 2px 12px rgba(0,0,0,0.07)' }}>
                 <h3 style={{ margin: '0 0 18px', fontSize: 16, fontWeight: 800, color: '#111' }}>Nouveau vendeur</h3>
                 {addMsg && (
-                  <div style={{ background: addMsg.includes('succès') ? '#f0fdf4' : '#fff5f5', border: `1px solid ${addMsg.includes('succès') ? '#86efac' : '#fecaca'}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-                    <p style={{ margin: 0, fontSize: 13, color: addMsg.includes('succès') ? '#16a34a' : '#dc2626', fontWeight: 700 }}>{addMsg}</p>
+                  <div style={{ background: addMsg.includes('succes') ? '#f0fdf4' : '#fff5f5', border: `1px solid ${addMsg.includes('succes') ? '#86efac' : '#fecaca'}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+                    <p style={{ margin: 0, fontSize: 13, color: addMsg.includes('succes') ? '#16a34a' : '#dc2626', fontWeight: 700 }}>{addMsg}</p>
                   </div>
                 )}
                 {[
@@ -208,47 +276,150 @@ export default function AdminDashboard() {
                     <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.8 }}>{f.label.toUpperCase()}</label>
                     <input type={f.type} placeholder={f.ph} value={newVendeur[f.key]}
                       onChange={(e) => setNewVendeur({ ...newVendeur, [f.key]: e.target.value })}
-                      style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box', color: '#111' }}
+                      style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
                     />
                   </div>
                 ))}
                 <button onClick={handleAddVendeur} disabled={addLoading}
                   style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: addLoading ? '#d1d5db' : '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: addLoading ? 'not-allowed' : 'pointer', marginTop: 6 }}>
-                  {addLoading ? 'Creation en cours...' : 'Creer le compte vendeur'}
+                  {addLoading ? 'Creation...' : 'Creer le compte vendeur'}
                 </button>
               </div>
             )}
 
             {vendeurs.length === 0 ? (
-              <div style={{ background: 'white', borderRadius: 20, padding: '48px 20px', textAlign: 'center', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
-                <p style={{ color: '#9ca3af', fontSize: 15, margin: 0, fontWeight: 500 }}>Aucun vendeur pour le moment</p>
-                <p style={{ color: '#d1d5db', fontSize: 13, margin: '6px 0 0' }}>Ajoutez votre premier vendeur ci-dessus</p>
+              <div style={{ background: 'white', borderRadius: 20, padding: '48px 20px', textAlign: 'center' }}>
+                <p style={{ color: '#9ca3af', fontSize: 15, margin: 0 }}>Aucun vendeur enregistre</p>
               </div>
             ) : (
               vendeurs.map((v, i) => (
-                <div key={i} style={{ background: 'white', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.05)' }}>
+                <div key={i} onClick={() => { setSelectedVendeur(v); setEditMode(null); setActionMsg('') }}
+                  style={{ background: 'white', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.05)', cursor: 'pointer', border: v.suspended ? '2px solid #fecaca' : '2px solid transparent', opacity: v.suspended ? 0.75 : 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <div style={{ width: 42, height: 42, background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <span style={{ fontSize: 16, fontWeight: 800, color: '#308B0A' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
+                      <div style={{ width: 42, height: 42, background: v.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${v.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: v.suspended ? '#ef4444' : '#308B0A' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
                       </div>
                       <div>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#111' }}>{v.full_name}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 12, color: '#6b7280' }}>{v.role} · {v.phone || 'Pas de telephone'}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 12, color: v.suspended ? '#ef4444' : '#6b7280', fontWeight: v.suspended ? 700 : 400 }}>
+                          {v.suspended ? 'SUSPENDU' : v.role} · {v.phone || 'Pas de tel'}
+                        </p>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: 0, fontWeight: 900, fontSize: 20, color: '#308B0A' }}>{v.ventes}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>tickets</p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>tickets</p>
                     </div>
                   </div>
-                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}>Montant attendu</span>
+                  <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 12, color: '#6b7280' }}>Montant attendu</span>
                     <span style={{ fontSize: 14, fontWeight: 800, color: '#111' }}>{v.montant.toLocaleString()} FCFA</span>
                   </div>
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* ===== DETAIL VENDEUR ===== */}
+        {activeTab === 'vendeurs' && selectedVendeur && (
+          <div>
+            <button onClick={() => { setSelectedVendeur(null); setEditMode(null); setActionMsg('') }}
+              style={{ background: 'white', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '10px 16px', fontSize: 13, fontWeight: 700, color: '#374151', cursor: 'pointer', marginBottom: 16 }}>
+              Retour
+            </button>
+
+            {actionMsg && (
+              <div style={{ background: actionMsg.includes('Erreur') ? '#fff5f5' : '#f0fdf4', border: `1px solid ${actionMsg.includes('Erreur') ? '#fecaca' : '#86efac'}`, borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: actionMsg.includes('Erreur') ? '#dc2626' : '#16a34a' }}>{actionMsg}</p>
+              </div>
+            )}
+
+            {/* Carte profil */}
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
+                <div style={{ width: 56, height: 56, background: selectedVendeur.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${selectedVendeur.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ fontSize: 22, fontWeight: 900, color: selectedVendeur.suspended ? '#ef4444' : '#308B0A' }}>{selectedVendeur.full_name?.charAt(0).toUpperCase()}</span>
+                </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 800, fontSize: 18, color: '#111' }}>{selectedVendeur.full_name}</p>
+                  <p style={{ margin: '3px 0 0', fontSize: 13, color: selectedVendeur.suspended ? '#ef4444' : '#6b7280', fontWeight: selectedVendeur.suspended ? 700 : 400 }}>
+                    {selectedVendeur.suspended ? 'COMPTE SUSPENDU' : selectedVendeur.role}
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div style={{ background: '#f0fdf4', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>TICKETS</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 900, color: '#308B0A' }}>{selectedVendeur.ventes}</p>
+                </div>
+                <div style={{ background: '#f5f3ff', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>MONTANT</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 900, color: '#6d28d9' }}>{selectedVendeur.montant?.toLocaleString()} F</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>ACTIONS</p>
+
+              {/* Modifier profil */}
+              <button onClick={() => setEditMode(editMode === 'edit' ? null : 'edit')}
+                style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'white', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
+                Modifier le profil
+              </button>
+              {editMode === 'edit' && (
+                <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px', marginBottom: 10 }}>
+                  {[
+                    { label: 'Nom complet', key: 'full_name' },
+                    { label: 'Telephone', key: 'phone' },
+                  ].map(f => (
+                    <div key={f.key} style={{ marginBottom: 10 }}>
+                      <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>{f.label.toUpperCase()}</label>
+                      <input type="text" defaultValue={selectedVendeur[f.key] || ''}
+                        onChange={(e) => setEditData({ ...editData, [f.key]: e.target.value })}
+                        style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 14, background: 'white', outline: 'none', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  ))}
+                  <button onClick={handleEdit} style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                    Enregistrer les modifications
+                  </button>
+                </div>
+              )}
+
+              {/* Reinitialiser mot de passe */}
+              <button onClick={() => setEditMode(editMode === 'password' ? null : 'password')}
+                style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'white', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
+                Reinitialiser le mot de passe
+              </button>
+              {editMode === 'password' && (
+                <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px', marginBottom: 10 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>NOUVEAU MOT DE PASSE</label>
+                  <input type="password" placeholder="Minimum 6 caracteres" value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 14, background: 'white', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }}
+                  />
+                  <button onClick={handleResetPassword} style={{ width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+                    Confirmer la reinitialisation
+                  </button>
+                </div>
+              )}
+
+              {/* Suspendre / Reactiver */}
+              <button onClick={() => handleSuspend(selectedVendeur)}
+                style={{ width: '100%', padding: '13px', borderRadius: 12, border: `1.5px solid ${selectedVendeur.suspended ? '#86efac' : '#fde68a'}`, background: selectedVendeur.suspended ? '#f0fdf4' : '#fffbeb', color: selectedVendeur.suspended ? '#16a34a' : '#b45309', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
+                {selectedVendeur.suspended ? 'Reactiver le compte' : 'Suspendre le compte'}
+              </button>
+
+              {/* Supprimer */}
+              <button onClick={() => handleDelete(selectedVendeur)}
+                style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
+                Supprimer definitivement le compte
+              </button>
+            </div>
           </div>
         )}
 
@@ -259,15 +430,15 @@ export default function AdminDashboard() {
               <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GENERATION DES TICKETS</p>
               <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800, color: '#111' }}>500 tickets numerotes</h3>
               <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
-                Genere les tickets JEF-001 a JEF-500 avec leurs codes secrets uniques. Cette action est irreversible.
+                Genere les tickets JEF-001 a JEF-500 avec leurs codes secrets uniques.
               </p>
-              <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)', letterSpacing: 0.3 }}>
+              <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
                 Generer les 500 tickets
               </button>
             </div>
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: '16px 18px' }}>
               <p style={{ margin: 0, fontSize: 13, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
-                Apres generation, les tickets seront disponibles pour vente par les vendeurs. Chaque ticket aura un numero serie unique et un code secret pour eviter la fraude.
+                Chaque ticket aura un numero serie unique et un code secret pour eviter la fraude.
               </p>
             </div>
           </div>
