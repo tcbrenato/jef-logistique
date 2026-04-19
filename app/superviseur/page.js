@@ -32,26 +32,6 @@ export default function SuperviseurPage() {
     fetchData()
   }
 
-  const checkSuperviseur = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session) { router.push('/login'); return }
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
-    if (!profile || !['superviseur', 'admin'].includes(profile.role)) { router.push('/login'); return }
-
-    fetchData()
-
-    // Realtime — mise a jour instantanee
-    const channel = supabase
-      .channel('tickets-realtime')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'tickets' },
-        () => { fetchData() }
-      )
-      .subscribe()
-
-    return () => supabase.removeChannel(channel)
-  }
-
   const fetchData = async () => {
     const { data: tickets } = await supabase.from('tickets').select('*')
     const { data: profiles } = await supabase.from('profiles').select('*').neq('role', 'admin')
