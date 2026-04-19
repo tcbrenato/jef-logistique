@@ -260,6 +260,11 @@ export default function AdminDashboard() {
   Voir l'historique des ventes
 </button>
 
+<button onClick={() => router.push('/admin/tickets-perdus')}
+  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #dc2626', background: 'white', color: '#dc2626', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
+  Gerer les tickets perdus
+</button>
+
             <button onClick={() => router.push('/admin/rapport')}
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
               Voir le rapport financier
