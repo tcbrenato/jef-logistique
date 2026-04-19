@@ -255,6 +255,11 @@ export default function AdminDashboard() {
               <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>{stats.vendus} tickets x 6 000 F</p>
             </div>
 
+            <button onClick={() => router.push('/admin/historique')}
+  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1d4ed8', background: 'white', color: '#1d4ed8', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
+  Voir l'historique des ventes
+</button>
+
             <button onClick={() => router.push('/admin/rapport')}
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
               Voir le rapport financier
