@@ -451,10 +451,60 @@ export default function AdminDashboard() {
                 Generer les 500 tickets
               </button>
             </div>
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: '16px 18px' }}>
+
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
               <p style={{ margin: 0, fontSize: 13, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
                 Chaque ticket aura un numero serie unique et un code secret pour eviter la fraude.
               </p>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>IMPRIMER LES TICKETS</p>
+              <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800, color: '#111' }}>Generer le PDF</h3>
+              <p style={{ margin: '0 0 16px', fontSize: 13, color: '#6b7280' }}>Choisissez la plage de tickets a imprimer</p>
+              <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>DU TICKET</label>
+                  <input type="number" min="1" max="500" defaultValue="1" id="ticket-debut"
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>AU TICKET</label>
+                  <input type="number" min="1" max="500" defaultValue="100" id="ticket-fin"
+                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                </div>
+              </div>
+              <button onClick={async () => {
+                const debut = document.getElementById('ticket-debut').value
+                const fin = document.getElementById('ticket-fin').value
+                const btn = document.getElementById('btn-generate-pdf')
+                btn.textContent = 'Generation en cours...'
+                btn.disabled = true
+                const res = await fetch('/api/generate-tickets', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ debut: parseInt(debut), fin: parseInt(fin) })
+                })
+                if (res.ok) {
+                  const blob = await res.blob()
+                  const url = URL.createObjectURL(blob)
+                  const a = document.createElement('a')
+                  a.href = url
+                  a.download = `tickets-jef2026-${debut}-${fin}.pdf`
+                  a.click()
+                  URL.revokeObjectURL(url)
+                } else {
+                  alert('Erreur lors de la generation')
+                }
+                btn.textContent = 'Generer le PDF'
+                btn.disabled = false
+              }}
+                id="btn-generate-pdf"
+                style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
+                Generer le PDF des tickets
+              </button>
             </div>
           </div>
         )}
