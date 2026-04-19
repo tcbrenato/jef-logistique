@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
@@ -11,16 +11,26 @@ export default function ControleurPage() {
   const [embarquementLoading, setEmbarquementLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [stats, setStats] = useState({ embarques: 0, vendus: 0 })
-  const [controleur, setControleur] = useState(null)
+  const [scanning, setScanning] = useState(false)
+  const scannerRef = useRef(null)
+  const scannerInstanceRef = useRef(null)
 
   useEffect(() => { checkControleur() }, [])
+
+  useEffect(() => {
+    if (scanning) {
+      startScanner()
+    } else {
+      stopScanner()
+    }
+    return () => stopScanner()
+  }, [scanning])
 
   const checkControleur = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
     if (!profile || !['controleur', 'admin'].includes(profile.role)) { router.push('/login'); return }
-    setControleur(profile)
     fetchStats()
   }
 
@@ -34,8 +44,40 @@ export default function ControleurPage() {
     }
   }
 
-  const handleSearch = async () => {
-    if (!search.trim()) return
+  const startScanner = async () => {
+    const { Html5Qrcode } = await import('html5-qrcode')
+    try {
+      const scanner = new Html5Qrcode('qr-reader')
+      scannerInstanceRef.current = scanner
+      await scanner.start(
+        { facingMode: 'environment' },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        async (decodedText) => {
+          await stopScanner()
+          setScanning(false)
+          setSearch(decodedText)
+          await handleSearch(decodedText)
+        },
+        () => {}
+      )
+    } catch (err) {
+      setScanning(false)
+      setMessage({ type: 'error', text: 'Impossible d\'acceder a la camera. Verifiez les permissions.' })
+    }
+  }
+
+  const stopScanner = async () => {
+    if (scannerInstanceRef.current) {
+      try {
+        await scannerInstanceRef.current.stop()
+        scannerInstanceRef.current = null
+      } catch (e) {}
+    }
+  }
+
+  const handleSearch = async (query) => {
+    const searchQuery = query || search
+    if (!searchQuery.trim()) return
     setSearchLoading(true)
     setTicket(null)
     setMessage({ type: '', text: '' })
@@ -43,7 +85,7 @@ export default function ControleurPage() {
     const { data, error } = await supabase
       .from('tickets')
       .select('*, profiles(full_name)')
-      .or(`serial_number.ilike.%${search}%,client_name.ilike.%${search}%`)
+      .or(`serial_number.ilike.%${searchQuery}%,client_name.ilike.%${searchQuery}%`)
       .limit(1)
       .single()
 
@@ -58,7 +100,7 @@ export default function ControleurPage() {
   const handleEmbarquement = async () => {
     if (!ticket) return
     if (ticket.status === 'embarque') {
-      setMessage({ type: 'fraud', text: 'ALERTE FRAUDE — Ce ticket a deja ete utilise pour embarquer !' })
+      setMessage({ type: 'fraud', text: 'ALERTE FRAUDE — Ce ticket a deja ete utilise !' })
       return
     }
     if (ticket.status === 'disponible') {
@@ -105,29 +147,41 @@ export default function ControleurPage() {
           </button>
         </div>
 
-        {/* Compteur embarquement */}
+        {/* Compteurs */}
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-          <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', textAlign: 'center' }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 700, margin: '0 0 4px', letterSpacing: 1 }}>A BORD</p>
-            <p style={{ color: 'white', fontSize: 28, fontWeight: 900, margin: 0 }}>{stats.embarques}</p>
-          </div>
-          <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', textAlign: 'center' }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 700, margin: '0 0 4px', letterSpacing: 1 }}>TOTAL VENDUS</p>
-            <p style={{ color: 'white', fontSize: 28, fontWeight: 900, margin: 0 }}>{stats.vendus}</p>
-          </div>
-          <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', textAlign: 'center' }}>
-            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 700, margin: '0 0 4px', letterSpacing: 1 }}>RESTANTS</p>
-            <p style={{ color: 'white', fontSize: 28, fontWeight: 900, margin: 0 }}>{stats.vendus - stats.embarques}</p>
-          </div>
+          {[
+            { label: 'A BORD', value: stats.embarques },
+            { label: 'TOTAL VENDUS', value: stats.vendus },
+            { label: 'RESTANTS', value: stats.vendus - stats.embarques },
+          ].map((s, i) => (
+            <div key={i} style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 14, padding: '14px', textAlign: 'center' }}>
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, fontWeight: 700, margin: '0 0 4px', letterSpacing: 1 }}>{s.label}</p>
+              <p style={{ color: 'white', fontSize: 28, fontWeight: 900, margin: 0 }}>{s.value}</p>
+            </div>
+          ))}
         </div>
       </div>
 
       <div style={{ padding: '20px 16px 40px' }}>
 
+        {/* Scanner QR */}
+        {scanning && (
+          <div style={{ background: 'white', borderRadius: 20, padding: '20px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#111' }}>Pointez vers le QR Code</p>
+              <button onClick={() => setScanning(false)}
+                style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '6px 12px', color: '#dc2626', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Annuler
+              </button>
+            </div>
+            <div id="qr-reader" ref={scannerRef} style={{ width: '100%', borderRadius: 14, overflow: 'hidden' }}></div>
+          </div>
+        )}
+
         {/* Barre de recherche */}
         <div style={{ background: 'white', borderRadius: 20, padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
-          <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>RECHERCHE PAR NUMERO OU NOM</p>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>RECHERCHE</p>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
             <input
               type="text"
               placeholder="Ex: JEF-001 ou Marc Dossou"
@@ -136,20 +190,29 @@ export default function ControleurPage() {
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '13px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
             />
-            <button
-              onClick={handleSearch}
+            <button onClick={() => handleSearch()}
               disabled={searchLoading}
-              style={{ padding: '13px 18px', borderRadius: 12, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              {searchLoading ? '...' : 'Chercher'}
+              style={{ padding: '13px 16px', borderRadius: 12, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              {searchLoading ? '...' : 'OK'}
             </button>
           </div>
+
+          {/* Bouton scanner */}
+          <button onClick={() => { setScanning(true); setTicket(null); setMessage({ type: '', text: '' }) }}
+            style={{ width: '100%', padding: '13px', borderRadius: 12, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#308B0A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="3" width="5" height="5"/><rect x="16" y="3" width="5" height="5"/><rect x="3" y="16" width="5" height="5"/>
+              <path d="M21 16h-3a2 2 0 0 0-2 2v3"/><path d="M21 21v.01"/><path d="M12 7v3a2 2 0 0 1-2 2H7"/><path d="M3 12h.01"/><path d="M12 3h.01"/><path d="M12 16v.01"/><path d="M16 12h1"/><path d="M21 12v.01"/><path d="M12 21v-1"/>
+            </svg>
+            Scanner un QR Code
+          </button>
         </div>
 
         {/* Message */}
         {message.text && (
           <div style={{
             background: message.type === 'success' ? '#f0fdf4' : message.type === 'fraud' ? '#fff1f2' : '#fff5f5',
-            border: `1px solid ${message.type === 'success' ? '#86efac' : message.type === 'fraud' ? '#fecdd3' : '#fecaca'}`,
+            border: `1px solid ${message.type === 'success' ? '#86efac' : '#fecaca'}`,
             borderLeft: `4px solid ${message.type === 'success' ? '#308B0A' : '#ef4444'}`,
             borderRadius: 14, padding: '14px 16px', marginBottom: 14
           }}>
@@ -161,9 +224,7 @@ export default function ControleurPage() {
 
         {/* Resultat ticket */}
         {ticket && (
-          <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
-
-            {/* Statut */}
+          <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
             {(() => {
               const s = getStatusStyle(ticket.status)
               return (
@@ -173,10 +234,9 @@ export default function ControleurPage() {
               )
             })()}
 
-            {/* Infos ticket */}
             <div style={{ marginBottom: 16 }}>
               <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>NUMERO DE TICKET</p>
-              <p style={{ margin: 0, fontSize: 26, fontWeight: 900, color: '#111', letterSpacing: 1 }}>{ticket.serial_number}</p>
+              <p style={{ margin: 0, fontSize: 28, fontWeight: 900, color: '#111', letterSpacing: 1 }}>{ticket.serial_number}</p>
             </div>
 
             <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 16, marginBottom: 16 }}>
@@ -195,19 +255,14 @@ export default function ControleurPage() {
             {ticket.embarked_at && (
               <div style={{ borderTop: '1px solid #f3f4f6', paddingTop: 16, marginBottom: 16 }}>
                 <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>EMBARQUE LE</p>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d4ed8' }}>
-                  {new Date(ticket.embarked_at).toLocaleString('fr-FR')}
-                </p>
+                <p style={{ margin: 0, fontSize: 14, fontWeight: 600, color: '#1d4ed8' }}>{new Date(ticket.embarked_at).toLocaleString('fr-FR')}</p>
               </div>
             )}
 
-            {/* Bouton embarquement */}
             {ticket.status === 'vendu' && (
-              <button
-                onClick={handleEmbarquement}
-                disabled={embarquementLoading}
+              <button onClick={handleEmbarquement} disabled={embarquementLoading}
                 style={{ width: '100%', padding: '17px', borderRadius: 16, border: 'none', background: embarquementLoading ? '#d1d5db' : 'linear-gradient(135deg, #308B0A, #1e5c06)', color: 'white', fontSize: 17, fontWeight: 800, cursor: embarquementLoading ? 'not-allowed' : 'pointer', boxShadow: '0 6px 20px rgba(48,139,10,0.35)', marginTop: 4 }}>
-                {embarquementLoading ? 'Validation...' : 'Valider l\'embarquement'}
+                {embarquementLoading ? 'Validation...' : "Valider l'embarquement"}
               </button>
             )}
 
@@ -225,11 +280,10 @@ export default function ControleurPage() {
           </div>
         )}
 
-        {/* Etat vide */}
-        {!ticket && !message.text && (
+        {!ticket && !message.text && !scanning && (
           <div style={{ background: 'white', borderRadius: 20, padding: '48px 20px', textAlign: 'center', boxShadow: '0 1px 8px rgba(0,0,0,0.05)' }}>
-            <p style={{ color: '#9ca3af', fontSize: 15, margin: 0, fontWeight: 500 }}>Recherchez un ticket pour commencer</p>
-            <p style={{ color: '#d1d5db', fontSize: 13, margin: '6px 0 0' }}>Par numero de ticket ou nom du passager</p>
+            <p style={{ color: '#9ca3af', fontSize: 15, margin: 0, fontWeight: 500 }}>Recherchez ou scannez un ticket</p>
+            <p style={{ color: '#d1d5db', fontSize: 13, margin: '6px 0 0' }}>Par numero, nom ou QR Code</p>
           </div>
         )}
       </div>
