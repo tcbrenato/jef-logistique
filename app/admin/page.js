@@ -27,6 +27,17 @@ export default function AdminDashboard() {
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
     if (profile?.role !== 'admin') { router.push('/login'); return }
     fetchData()
+
+// Realtime sur les tickets
+const channel = supabase
+  .channel('tickets-changes')
+  .on('postgres_changes',
+    { event: '*', schema: 'public', table: 'tickets' },
+    () => { fetchData() }
+  )
+  .subscribe()
+
+return () => supabase.removeChannel(channel)
   }
 
   const fetchData = async () => {

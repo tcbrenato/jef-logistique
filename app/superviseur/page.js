@@ -10,17 +10,28 @@ export default function SuperviseurPage() {
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(null)
 
-  useEffect(() => { checkSuperviseur() }, [])
+  useEffect(() => {
+    checkSuperviseur()
+  }, [])
 
   const checkSuperviseur = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
     if (!profile || !['superviseur', 'admin'].includes(profile.role)) { router.push('/login'); return }
+
     fetchData()
-    // Rafraichissement automatique toutes les 30 secondes
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
+
+    // Realtime — mise a jour instantanee
+    const channel = supabase
+      .channel('tickets-realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => { fetchData() }
+      )
+      .subscribe()
+
+    return () => supabase.removeChannel(channel)
   }
 
   const fetchData = async () => {
@@ -108,7 +119,7 @@ export default function SuperviseurPage() {
         </div>
         {lastUpdate && (
           <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 11, margin: '10px 0 0', fontWeight: 500 }}>
-            Derniere mise a jour : {lastUpdate.toLocaleTimeString('fr-FR')}
+            Mise a jour en temps reel · {lastUpdate.toLocaleTimeString('fr-FR')}
           </p>
         )}
       </div>
