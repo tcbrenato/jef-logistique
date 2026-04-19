@@ -19,25 +19,27 @@ export default function AdminDashboard() {
   const [actionMsg, setActionMsg] = useState('')
   const [newPassword, setNewPassword] = useState('')
 
-  useEffect(() => { checkAdmin() }, []) 
+  useEffect(() => {
+    checkAdmin()
+  }, [])
 
   const checkAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
     if (profile?.role !== 'admin') { router.push('/login'); return }
+
     fetchData()
 
-// Realtime sur les tickets
-const channel = supabase
-  .channel('tickets-changes')
-  .on('postgres_changes',
-    { event: '*', schema: 'public', table: 'tickets' },
-    () => { fetchData() }
-  )
-  .subscribe()
+    const channel = supabase
+      .channel('admin-realtime')
+      .on('postgres_changes',
+        { event: '*', schema: 'public', table: 'tickets' },
+        () => { fetchData() }
+      )
+      .subscribe()
 
-return () => supabase.removeChannel(channel)
+    return () => supabase.removeChannel(channel)
   }
 
   const fetchData = async () => {
@@ -104,7 +106,6 @@ return () => supabase.removeChannel(channel)
     setAddLoading(false)
   }
 
-  // MODIFIER NOM / TELEPHONE
   const handleEdit = async () => {
     const { error } = await supabase
       .from('profiles')
@@ -117,7 +118,6 @@ return () => supabase.removeChannel(channel)
     } else setActionMsg('Erreur : ' + error.message)
   }
 
-  // REINITIALISER MOT DE PASSE
   const handleResetPassword = async () => {
     if (!newPassword || newPassword.length < 6) {
       setActionMsg('Le mot de passe doit faire au moins 6 caracteres'); return
@@ -136,7 +136,6 @@ return () => supabase.removeChannel(channel)
     }
   }
 
-  // SUSPENDRE / REACTIVER
   const handleSuspend = async (vendeur) => {
     const newStatus = !vendeur.suspended
     const { error } = await supabase
@@ -153,9 +152,8 @@ return () => supabase.removeChannel(channel)
     }
   }
 
-  // SUPPRIMER
   const handleDelete = async (vendeur) => {
-    if (!confirm(`Supprimer definitivement le compte de ${vendeur.full_name} ? Cette action est irreversible.`)) return
+    if (!confirm(`Supprimer definitivement le compte de ${vendeur.full_name} ?`)) return
     const res = await fetch('/api/admin-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -211,7 +209,7 @@ return () => supabase.removeChannel(channel)
 
       <div style={{ padding: '20px 16px 40px' }}>
 
-        {/* ===== APERCU ===== */}
+        {/* APERCU */}
         {activeTab === 'dashboard' && (
           <div>
             <div style={{ background: 'white', borderRadius: 20, padding: '24px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
@@ -234,6 +232,7 @@ return () => supabase.removeChannel(channel)
                 <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 500 }}>500 places</span>
               </div>
             </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
               {[
                 { label: 'Tickets vendus', value: stats.vendus, color: '#308B0A', bg: '#f0fdf4', border: '#bbf7d0' },
@@ -247,6 +246,7 @@ return () => supabase.removeChannel(channel)
                 </div>
               ))}
             </div>
+
             <div style={{ background: 'linear-gradient(135deg, #308B0A, #1e5c06)', borderRadius: 20, padding: '22px 24px' }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: 1.5 }}>CAISSE TOTALE PREVISION</p>
               <p style={{ margin: '8px 0 4px', fontSize: 32, fontWeight: 900, color: 'white', letterSpacing: '-1px' }}>
@@ -257,7 +257,7 @@ return () => supabase.removeChannel(channel)
           </div>
         )}
 
-        {/* ===== VENDEURS ===== */}
+        {/* VENDEURS — LISTE */}
         {activeTab === 'vendeurs' && !selectedVendeur && (
           <div>
             {actionMsg && (
@@ -305,7 +305,7 @@ return () => supabase.removeChannel(channel)
             ) : (
               vendeurs.map((v, i) => (
                 <div key={i} onClick={() => { setSelectedVendeur(v); setEditMode(null); setActionMsg('') }}
-                  style={{ background: 'white', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.05)', cursor: 'pointer', border: v.suspended ? '2px solid #fecaca' : '2px solid transparent', opacity: v.suspended ? 0.75 : 1 }}>
+                  style={{ background: 'white', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.05)', cursor: 'pointer', border: v.suspended ? '2px solid #fecaca' : '2px solid transparent' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ width: 42, height: 42, background: v.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${v.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -333,7 +333,7 @@ return () => supabase.removeChannel(channel)
           </div>
         )}
 
-        {/* ===== DETAIL VENDEUR ===== */}
+        {/* VENDEURS — DETAIL */}
         {activeTab === 'vendeurs' && selectedVendeur && (
           <div>
             <button onClick={() => { setSelectedVendeur(null); setEditMode(null); setActionMsg('') }}
@@ -347,7 +347,6 @@ return () => supabase.removeChannel(channel)
               </div>
             )}
 
-            {/* Carte profil */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, background: selectedVendeur.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${selectedVendeur.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -372,11 +371,9 @@ return () => supabase.removeChannel(channel)
               </div>
             </div>
 
-            {/* Actions */}
-            <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>ACTIONS</p>
 
-              {/* Modifier profil */}
               <button onClick={() => setEditMode(editMode === 'edit' ? null : 'edit')}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'white', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
                 Modifier le profil
@@ -401,7 +398,6 @@ return () => supabase.removeChannel(channel)
                 </div>
               )}
 
-              {/* Reinitialiser mot de passe */}
               <button onClick={() => setEditMode(editMode === 'password' ? null : 'password')}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'white', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
                 Reinitialiser le mot de passe
@@ -419,13 +415,11 @@ return () => supabase.removeChannel(channel)
                 </div>
               )}
 
-              {/* Suspendre / Reactiver */}
               <button onClick={() => handleSuspend(selectedVendeur)}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: `1.5px solid ${selectedVendeur.suspended ? '#86efac' : '#fde68a'}`, background: selectedVendeur.suspended ? '#f0fdf4' : '#fffbeb', color: selectedVendeur.suspended ? '#16a34a' : '#b45309', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
                 {selectedVendeur.suspended ? 'Reactiver le compte' : 'Suspendre le compte'}
               </button>
 
-              {/* Supprimer */}
               <button onClick={() => handleDelete(selectedVendeur)}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
                 Supprimer definitivement le compte
@@ -434,7 +428,7 @@ return () => supabase.removeChannel(channel)
           </div>
         )}
 
-        {/* ===== TICKETS ===== */}
+        {/* TICKETS */}
         {activeTab === 'tickets' && (
           <div>
             <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
