@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { useRouter } = 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
 
 export default function AdminDashboard() {
@@ -19,7 +19,7 @@ export default function AdminDashboard() {
   const [actionMsg, setActionMsg] = useState('')
   const [newPassword, setNewPassword] = useState('')
 
-  useEffect(() => { checkAdmin() }, [])
+  useEffect(() => { checkAdmin() }, []) 
 
   const checkAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession()
