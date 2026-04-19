@@ -97,30 +97,48 @@ export default function ControleurPage() {
     setSearchLoading(false)
   }
 
-  const playSound = (type) => {
-    const context = new (window.AudioContext || window.webkitAudioContext)()
-    const oscillator = context.createOscillator()
-    const gainNode = context.createGain()
-    oscillator.connect(gainNode)
-    gainNode.connect(context.destination)
-
-    if (type === 'success') {
-      oscillator.frequency.setValueAtTime(880, context.currentTime)
-      oscillator.frequency.setValueAtTime(1100, context.currentTime + 0.15)
-      gainNode.gain.setValueAtTime(0.3, context.currentTime)
-      gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.4)
-      oscillator.start(context.currentTime)
-      oscillator.stop(context.currentTime + 0.4)
-    } else {
-      oscillator.type = 'sawtooth'
-      oscillator.frequency.setValueAtTime(440, context.currentTime)
-      gainNode.gain.setValueAtTime(0.5, context.currentTime)
-      oscillator.start(context.currentTime)
-      for (let i = 0; i < 6; i++) {
-        oscillator.frequency.setValueAtTime(i % 2 === 0 ? 440 : 220, context.currentTime + i * 0.15)
+  const playSound = async (type) => {
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext
+      if (!AudioContext) return
+      
+      const context = new AudioContext()
+      
+      // Debloquer le contexte audio sur mobile
+      if (context.state === 'suspended') {
+        await context.resume()
       }
-      gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1)
-      oscillator.stop(context.currentTime + 1)
+
+      const oscillator = context.createOscillator()
+      const gainNode = context.createGain()
+      oscillator.connect(gainNode)
+      gainNode.connect(context.destination)
+
+      if (type === 'success') {
+        oscillator.type = 'sine'
+        oscillator.frequency.setValueAtTime(880, context.currentTime)
+        oscillator.frequency.setValueAtTime(1100, context.currentTime + 0.15)
+        gainNode.gain.setValueAtTime(0.5, context.currentTime)
+        gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.5)
+        oscillator.start(context.currentTime)
+        oscillator.stop(context.currentTime + 0.5)
+      } else {
+        // Alarme fraude — 3 sons separés
+        for (let i = 0; i < 3; i++) {
+          const osc = context.createOscillator()
+          const gain = context.createGain()
+          osc.connect(gain)
+          gain.connect(context.destination)
+          osc.type = 'sawtooth'
+          osc.frequency.setValueAtTime(660, context.currentTime + i * 0.3)
+          gain.gain.setValueAtTime(0.6, context.currentTime + i * 0.3)
+          gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + i * 0.3 + 0.25)
+          osc.start(context.currentTime + i * 0.3)
+          osc.stop(context.currentTime + i * 0.3 + 0.25)
+        }
+      }
+    } catch (e) {
+      console.log('Audio error:', e)
     }
   }
 
