@@ -97,13 +97,43 @@ export default function ControleurPage() {
     setSearchLoading(false)
   }
 
+  const playSound = (type) => {
+    const context = new (window.AudioContext || window.webkitAudioContext)()
+    const oscillator = context.createOscillator()
+    const gainNode = context.createGain()
+    oscillator.connect(gainNode)
+    gainNode.connect(context.destination)
+
+    if (type === 'success') {
+      oscillator.frequency.setValueAtTime(880, context.currentTime)
+      oscillator.frequency.setValueAtTime(1100, context.currentTime + 0.15)
+      gainNode.gain.setValueAtTime(0.3, context.currentTime)
+      gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.4)
+      oscillator.start(context.currentTime)
+      oscillator.stop(context.currentTime + 0.4)
+    } else {
+      oscillator.type = 'sawtooth'
+      oscillator.frequency.setValueAtTime(440, context.currentTime)
+      gainNode.gain.setValueAtTime(0.5, context.currentTime)
+      oscillator.start(context.currentTime)
+      for (let i = 0; i < 6; i++) {
+        oscillator.frequency.setValueAtTime(i % 2 === 0 ? 440 : 220, context.currentTime + i * 0.15)
+      }
+      gainNode.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 1)
+      oscillator.stop(context.currentTime + 1)
+    }
+  }
+
   const handleEmbarquement = async () => {
     if (!ticket) return
+
     if (ticket.status === 'embarque') {
+      playSound('fraud')
       setMessage({ type: 'fraud', text: 'ALERTE FRAUDE — Ce ticket a deja ete utilise !' })
       return
     }
     if (ticket.status === 'disponible') {
+      playSound('fraud')
       setMessage({ type: 'error', text: 'Ce ticket n\'a pas encore ete vendu.' })
       return
     }
@@ -114,6 +144,7 @@ export default function ControleurPage() {
       .eq('id', ticket.id)
 
     if (!error) {
+      playSound('success')
       setTicket({ ...ticket, status: 'embarque' })
       setMessage({ type: 'success', text: `Embarquement valide ! ${ticket.client_name} est a bord.` })
       fetchStats()
