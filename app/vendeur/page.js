@@ -181,9 +181,14 @@ export default function VendeurPage() {
               <p style={{ color: 'rgba(255,255,255,0.65)', fontSize: 10, fontWeight: 700, margin: 0, letterSpacing: 1 }}>MES VENTES</p>
               <p style={{ color: 'white', fontSize: 22, fontWeight: 900, margin: 0 }}>{mesVentes.length}</p>
             </div>
-            <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '9px 14px', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
-              Quitter
-            </button>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => router.push('/vendeur/profil')} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '9px 14px', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Mon profil
+              </button>
+              <button onClick={handleLogout} style={{ background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.25)', borderRadius: 10, padding: '9px 14px', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+                Quitter
+              </button>
+            </div>
           </div>
         </div>
         <div style={{ display: 'flex', gap: 2 }}>
