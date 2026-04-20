@@ -37,6 +37,10 @@ export default function SuperviseurPage() {
     if (!session) { router.push('/login'); return }
     const { data: prof } = await supabase.from('profiles').select('*').eq('id', session.user.id).single()
     if (!prof || !['superviseur', 'admin'].includes(prof.role)) { router.push('/login'); return }
+    if (!prof.profil_complet) {
+      router.push('/superviseur/profil')
+      return
+    }
     setProfile(prof)
     fetchData()
   }
