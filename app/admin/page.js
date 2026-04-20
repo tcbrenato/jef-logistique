@@ -19,26 +19,18 @@ export default function AdminDashboard() {
   const [actionMsg, setActionMsg] = useState('')
   const [newPassword, setNewPassword] = useState('')
 
-  useEffect(() => {
-    checkAdmin()
-  }, [])
+  useEffect(() => { checkAdmin() }, [])
 
   const checkAdmin = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     if (!session) { router.push('/login'); return }
     const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single()
     if (profile?.role !== 'admin') { router.push('/login'); return }
-
     fetchData()
-
     const channel = supabase
       .channel('admin-realtime')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'tickets' },
-        () => { fetchData() }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => { fetchData() })
       .subscribe()
-
     return () => supabase.removeChannel(channel)
   }
 
@@ -64,10 +56,7 @@ export default function AdminDashboard() {
     setLoading(false)
   }
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/login')
-  }
+  const handleLogout = async () => { await supabase.auth.signOut(); router.push('/login') }
 
   const generateTickets = async () => {
     const { data: existing } = await supabase.from('tickets').select('serial_number')
@@ -107,47 +96,29 @@ export default function AdminDashboard() {
   }
 
   const handleEdit = async () => {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ full_name: editData.full_name, phone: editData.phone })
-      .eq('id', selectedVendeur.id)
-    if (!error) {
-      setActionMsg('Profil mis a jour avec succes !')
-      fetchData()
-      setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500)
-    } else setActionMsg('Erreur : ' + error.message)
+    const { error } = await supabase.from('profiles').update({ full_name: editData.full_name, phone: editData.phone }).eq('id', selectedVendeur.id)
+    if (!error) { setActionMsg('Profil mis a jour !'); fetchData(); setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500) }
+    else setActionMsg('Erreur : ' + error.message)
   }
 
   const handleResetPassword = async () => {
-    if (!newPassword || newPassword.length < 6) {
-      setActionMsg('Le mot de passe doit faire au moins 6 caracteres'); return
-    }
+    if (!newPassword || newPassword.length < 6) { setActionMsg('Minimum 6 caracteres'); return }
     const res = await fetch('/api/admin-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'reset_password', userId: selectedVendeur.id, newPassword })
     })
     const result = await res.json()
     if (result.error) setActionMsg('Erreur : ' + result.error)
-    else {
-      setActionMsg('Mot de passe reinitialise avec succes !')
-      setNewPassword('')
-      setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500)
-    }
+    else { setActionMsg('Mot de passe reinitialise !'); setNewPassword(''); setTimeout(() => { setEditMode(null); setActionMsg('') }, 1500) }
   }
 
   const handleSuspend = async (vendeur) => {
     const newStatus = !vendeur.suspended
-    const { error } = await supabase
-      .from('profiles')
-      .update({ suspended: newStatus })
-      .eq('id', vendeur.id)
+    const { error } = await supabase.from('profiles').update({ suspended: newStatus }).eq('id', vendeur.id)
     if (!error) {
       setActionMsg(newStatus ? 'Vendeur suspendu !' : 'Vendeur reactive !')
       fetchData()
-      if (selectedVendeur?.id === vendeur.id) {
-        setSelectedVendeur({ ...selectedVendeur, suspended: newStatus })
-      }
+      if (selectedVendeur?.id === vendeur.id) setSelectedVendeur({ ...selectedVendeur, suspended: newStatus })
       setTimeout(() => setActionMsg(''), 2000)
     }
   }
@@ -155,15 +126,19 @@ export default function AdminDashboard() {
   const handleDelete = async (vendeur) => {
     if (!confirm(`Supprimer definitivement le compte de ${vendeur.full_name} ?`)) return
     const res = await fetch('/api/admin-action', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'delete_user', userId: vendeur.id })
     })
     const result = await res.json()
     if (result.error) setActionMsg('Erreur : ' + result.error)
-    else {
-      setActionMsg('Compte supprime !')
-      setSelectedVendeur(null)
+    else { setActionMsg('Compte supprime !'); setSelectedVendeur(null); fetchData(); setTimeout(() => setActionMsg(''), 2000) }
+  }
+
+  const handleUpdateTicketsRemis = async (val) => {
+    const { error } = await supabase.from('profiles').update({ tickets_remis: val }).eq('id', selectedVendeur.id)
+    if (!error) {
+      setActionMsg(`Tickets remis mis a jour : ${val} tickets`)
+      setSelectedVendeur({ ...selectedVendeur, tickets_remis: val })
       fetchData()
       setTimeout(() => setActionMsg(''), 2000)
     }
@@ -238,7 +213,7 @@ export default function AdminDashboard() {
                 { label: 'Tickets vendus', value: stats.vendus, color: '#308B0A', bg: '#f0fdf4', border: '#bbf7d0' },
                 { label: 'A bord', value: stats.embarques, color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
                 { label: 'Disponibles', value: stats.disponibles, color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-                { label: 'Vendeurs actifs', value: vendeurs.filter(v => !v.suspended).length, color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
+                { label: 'Vendeurs actifs', value: vendeurs.filter(v => !v.suspended && v.role === 'vendeur').length, color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
               ].map((card, i) => (
                 <div key={i} style={{ background: card.bg, borderRadius: 16, padding: '18px 16px', border: `1px solid ${card.border}` }}>
                   <p style={{ color: '#6b7280', fontSize: 10, fontWeight: 700, margin: '0 0 8px', letterSpacing: 0.8 }}>{card.label.toUpperCase()}</p>
@@ -247,7 +222,7 @@ export default function AdminDashboard() {
               ))}
             </div>
 
-            <div style={{ background: 'linear-gradient(135deg, #308B0A, #1e5c06)', borderRadius: 20, padding: '22px 24px' }}>
+            <div style={{ background: 'linear-gradient(135deg, #308B0A, #1e5c06)', borderRadius: 20, padding: '22px 24px', marginBottom: 14 }}>
               <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.65)', letterSpacing: 1.5 }}>CAISSE TOTALE PREVISION</p>
               <p style={{ margin: '8px 0 4px', fontSize: 32, fontWeight: 900, color: 'white', letterSpacing: '-1px' }}>
                 {(stats.vendus * 6000).toLocaleString()} <span style={{ fontSize: 16, fontWeight: 500 }}>FCFA</span>
@@ -256,17 +231,15 @@ export default function AdminDashboard() {
             </div>
 
             <button onClick={() => router.push('/admin/historique')}
-  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1d4ed8', background: 'white', color: '#1d4ed8', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
-  Voir l'historique des ventes
-</button>
-
-<button onClick={() => router.push('/admin/tickets-perdus')}
-  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #dc2626', background: 'white', color: '#dc2626', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
-  Gerer les tickets perdus
-</button>
-
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1d4ed8', background: 'white', color: '#1d4ed8', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
+              Voir l'historique des ventes
+            </button>
+            <button onClick={() => router.push('/admin/tickets-perdus')}
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #dc2626', background: 'white', color: '#dc2626', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
+              Gerer les tickets perdus
+            </button>
             <button onClick={() => router.push('/admin/rapport')}
-              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
               Voir le rapport financier
             </button>
           </div>
@@ -313,12 +286,12 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {vendeurs.length === 0 ? (
+            {vendeurs.filter(v => v.role === 'vendeur').length === 0 ? (
               <div style={{ background: 'white', borderRadius: 20, padding: '48px 20px', textAlign: 'center' }}>
                 <p style={{ color: '#9ca3af', fontSize: 15, margin: 0 }}>Aucun vendeur enregistre</p>
               </div>
             ) : (
-              vendeurs.map((v, i) => (
+              vendeurs.filter(v => v.role === 'vendeur').map((v, i) => (
                 <div key={i} onClick={() => { setSelectedVendeur(v); setEditMode(null); setActionMsg('') }}
                   style={{ background: 'white', borderRadius: 16, padding: '18px', marginBottom: 10, boxShadow: '0 1px 6px rgba(0,0,0,0.05)', cursor: 'pointer', border: v.suspended ? '2px solid #fecaca' : '2px solid transparent' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -329,13 +302,13 @@ export default function AdminDashboard() {
                       <div>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: '#111' }}>{v.full_name}</p>
                         <p style={{ margin: '2px 0 0', fontSize: 12, color: v.suspended ? '#ef4444' : '#6b7280', fontWeight: v.suspended ? 700 : 400 }}>
-                          {v.suspended ? 'SUSPENDU' : v.role} · {v.phone || 'Pas de tel'}
+                          {v.suspended ? 'SUSPENDU' : `${v.ventes} tickets · ${(v.tickets_remis || 0)} remis`}
                         </p>
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <p style={{ margin: 0, fontWeight: 900, fontSize: 20, color: '#308B0A' }}>{v.ventes}</p>
-                      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>tickets</p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#9ca3af' }}>vendus</p>
                     </div>
                   </div>
                   <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f3f4f6', display: 'flex', justifyContent: 'space-between' }}>
@@ -362,6 +335,7 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* Carte profil */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, background: selectedVendeur.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${selectedVendeur.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -374,20 +348,53 @@ export default function AdminDashboard() {
                   </p>
                 </div>
               </div>
+
+              {/* 4 cartes stats */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: '#f0fdf4', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
-                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>TICKETS</p>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>TICKETS VENDUS</p>
                   <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 900, color: '#308B0A' }}>{selectedVendeur.ventes}</p>
                 </div>
                 <div style={{ background: '#f5f3ff', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>MONTANT</p>
                   <p style={{ margin: '4px 0 0', fontSize: 16, fontWeight: 900, color: '#6d28d9' }}>{selectedVendeur.montant?.toLocaleString()} F</p>
                 </div>
+                <div style={{ background: '#fffbeb', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>REMIS</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 900, color: '#b45309' }}>{selectedVendeur.tickets_remis || 0}</p>
+                </div>
+                <div style={{ background: selectedVendeur.ventes > (selectedVendeur.tickets_remis || 0) ? '#fff5f5' : '#eff6ff', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
+                  <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>EN MAIN</p>
+                  <p style={{ margin: '4px 0 0', fontSize: 24, fontWeight: 900, color: selectedVendeur.ventes > (selectedVendeur.tickets_remis || 0) ? '#dc2626' : '#1d4ed8' }}>
+                    {(selectedVendeur.tickets_remis || 0) - selectedVendeur.ventes}
+                  </p>
+                </div>
               </div>
             </div>
 
+            {/* ACTIONS */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>ACTIONS</p>
+
+              {/* Tickets remis */}
+              <div style={{ background: '#f9fafb', borderRadius: 14, padding: '16px', marginBottom: 14 }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>TICKETS REMIS AU VENDEUR</p>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input
+                    type="number" min="0" max="500"
+                    defaultValue={selectedVendeur.tickets_remis || 0}
+                    id="tickets-remis-input"
+                    style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 16, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                  />
+                  <button onClick={() => handleUpdateTicketsRemis(parseInt(document.getElementById('tickets-remis-input').value))}
+                    style={{ padding: '11px 18px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                    Sauvegarder
+                  </button>
+                </div>
+                <p style={{ margin: '8px 0 0', fontSize: 12, color: '#6b7280' }}>
+                  {selectedVendeur.ventes} vendus · {(selectedVendeur.tickets_remis || 0) - selectedVendeur.ventes} encore en main
+                </p>
+              </div>
 
               <button onClick={() => setEditMode(editMode === 'edit' ? null : 'edit')}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #e5e7eb', background: 'white', color: '#111', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
@@ -395,10 +402,7 @@ export default function AdminDashboard() {
               </button>
               {editMode === 'edit' && (
                 <div style={{ background: '#f9fafb', borderRadius: 12, padding: '16px', marginBottom: 10 }}>
-                  {[
-                    { label: 'Nom complet', key: 'full_name' },
-                    { label: 'Telephone', key: 'phone' },
-                  ].map(f => (
+                  {[{ label: 'Nom complet', key: 'full_name' }, { label: 'Telephone', key: 'phone' }].map(f => (
                     <div key={f.key} style={{ marginBottom: 10 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>{f.label.toUpperCase()}</label>
                       <input type="text" defaultValue={selectedVendeur[f.key] || ''}
