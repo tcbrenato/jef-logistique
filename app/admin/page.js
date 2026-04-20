@@ -170,7 +170,7 @@ export default function AdminDashboard() {
           </button>
         </div>
         <div style={{ display: 'flex', gap: 2 }}>
-          {[['dashboard', 'Apercu'], ['vendeurs', 'Vendeurs'], ['tickets', 'Tickets']].map(([key, label]) => (
+          {[['dashboard', 'Apercu'], ['vendeurs', 'Vendeurs'], ['tickets', 'Tickets'], ['equipe', 'Equipe']].map(([key, label]) => (
             <button key={key} onClick={() => { setActiveTab(key); setSelectedVendeur(null); setEditMode(null) }} style={{
               flex: 1, padding: '11px 0', border: 'none', background: 'transparent',
               color: activeTab === key ? 'white' : 'rgba(255,255,255,0.5)',
@@ -443,6 +443,103 @@ export default function AdminDashboard() {
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
                 Supprimer definitivement le compte
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* EQUIPE */}
+        {activeTab === 'equipe' && (
+          <div>
+            {actionMsg && (
+              <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 12, padding: '12px 16px', marginBottom: 14 }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{actionMsg}</p>
+              </div>
+            )}
+
+            {/* Membres BUE */}
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>MEMBRES BUE / SUPERVISEURS</p>
+                <button onClick={async () => {
+                  const email = prompt('Email du nouveau membre BUE :')
+                  if (!email) return
+                  const password = prompt('Mot de passe temporaire :')
+                  if (!password) return
+                  const res = await fetch('/api/create-user', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ full_name: 'Membre BUE', email, phone: '', password, role: 'superviseur' })
+                  })
+                  const result = await res.json()
+                  if (result.error) setActionMsg('Erreur : ' + result.error)
+                  else { setActionMsg('Membre BUE cree avec succes !'); fetchData() }
+                }}
+                  style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  + Ajouter
+                </button>
+              </div>
+
+              {vendeurs.filter(v => v.role === 'superviseur').length === 0 ? (
+                <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', padding: '20px 0', margin: 0 }}>Aucun membre BUE enregistre</p>
+              ) : (
+                vendeurs.filter(v => v.role === 'superviseur').map((v, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < vendeurs.filter(x => x.role === 'superviseur').length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 42, height: 42, background: v.suspended ? '#fff5f5' : v.profil_complet ? '#eff6ff' : '#fffbeb', border: `2px solid ${v.suspended ? '#fecaca' : v.profil_complet ? '#bfdbfe' : '#fde68a'}`, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: v.suspended ? '#ef4444' : v.profil_complet ? '#1d4ed8' : '#b45309' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#111' }}>{v.full_name} {v.prenom || ''}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>
+                          {v.poste || 'Poste non defini'} · {v.profil_complet ? 'Profil complet' : 'Profil incomplet'}
+                        </p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => handleSuspend(v)}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        {v.suspended ? 'Reactiver' : 'Suspendre'}
+                      </button>
+                      <button onClick={() => handleDelete(v)}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Gestionnaires */}
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GESTIONNAIRES</p>
+              {vendeurs.filter(v => v.role === 'gestionnaire').length === 0 ? (
+                <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', padding: '20px 0', margin: 0 }}>Aucun gestionnaire enregistre</p>
+              ) : (
+                vendeurs.filter(v => v.role === 'gestionnaire').map((v, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < vendeurs.filter(x => x.role === 'gestionnaire').length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ width: 42, height: 42, background: '#f5f3ff', border: '2px solid #ddd6fe', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <span style={{ fontSize: 16, fontWeight: 800, color: '#6d28d9' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#111' }}>{v.full_name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>Gestionnaire · {v.phone || 'Pas de tel'}</p>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button onClick={() => handleSuspend(v)}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        {v.suspended ? 'Reactiver' : 'Suspendre'}
+                      </button>
+                      <button onClick={() => handleDelete(v)}
+                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                        Supprimer
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
