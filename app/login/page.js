@@ -36,10 +36,8 @@ export default function Login() {
     else if (profile?.role === 'vendeur') router.push('/vendeur')
     else if (profile?.role === 'controleur') router.push('/controleur')
     else if (profile?.role === 'superviseur') router.push('/superviseur')
-    else {
-  console.log('Profil récupéré:', profile)
-  setError("Accès non autorisé. Contactez l'administrateur.")
-}
+    else if (profile?.role === 'gestionnaire') router.push('/gestionnaire')
+    else setError("Accès non autorisé. Contactez l'administrateur.")
 
     setLoading(false)
   }
