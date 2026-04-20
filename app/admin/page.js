@@ -459,6 +459,31 @@ export default function AdminDashboard() {
               <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
                 Generer les 500 tickets
               </button>
+
+              <button onClick={async () => {
+                const { data: tickets } = await supabase
+                  .from('tickets')
+                  .select('serial_number, secret_key, status')
+                  .order('serial_number')
+                if (!tickets || tickets.length === 0) {
+                  alert('Aucun ticket a exporter. Generez d\'abord les tickets.')
+                  return
+                }
+                let csv = 'Numero Ticket,Code Secret,Statut,QR Code URL\n'
+                tickets.forEach(t => {
+                  csv += `${t.serial_number},${t.secret_key},${t.status},https://jef-logistique.vercel.app/verify/${t.serial_number}\n`
+                })
+                const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `codes-secrets-jef2026.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+              }}
+                style={{ width: '100%', padding: '15px', borderRadius: 14, border: '2px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 10 }}>
+                Exporter les codes secrets (Excel)
+              </button>
             </div>
 
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
