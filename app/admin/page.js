@@ -242,6 +242,10 @@ export default function AdminDashboard() {
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
               Voir le rapport financier
             </button>
+            <button onClick={() => router.push('/admin/codes')}
+  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1e5c06', background: '#1e5c06', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
+  Consulter les codes secrets
+</button>
           </div>
         )}
 
