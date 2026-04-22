@@ -7,10 +7,11 @@ export default function VerifyPage() {
   const [ticket, setTicket] = useState(null)
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+  const [showModal, setShowModal] = useState(false)
   const [countdown, setCountdown] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 })
 
   useEffect(() => {
-    const target = new Date('2026-06-13T07:00:00')
+    const target = new Date('2026-06-13T09:00:00')
     const timer = setInterval(() => {
       const now = new Date()
       const diff = target - now
@@ -49,7 +50,7 @@ export default function VerifyPage() {
         <h1 style={{ color: 'white', fontSize: 28, fontWeight: 900, margin: '0 0 4px', letterSpacing: '-0.5px' }}>JEF 2026</h1>
         <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, margin: '0 0 16px' }}>Grand-Popo via Ouidah · 13 Juin</p>
 
-        {/* Compte à rebours */}
+        {/* Compte a rebours */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
           {[
             { val: countdown.days, label: 'Jours' },
@@ -73,11 +74,17 @@ export default function VerifyPage() {
 
         {/* Infos voyage */}
         <div style={{ background: 'white', borderRadius: 16, padding: '16px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
-          <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>INFOS DU VOYAGE</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>INFOS DU VOYAGE</p>
+            <button onClick={() => setShowModal(true)}
+              style={{ padding: '6px 14px', borderRadius: 8, border: 'none', background: '#308B0A', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+              Voir le programme
+            </button>
+          </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
               { label: 'Date', value: '13 Juin 2026' },
-              { label: 'Depart', value: 'UAC · Cotonou' },
+              { label: 'Depart', value: 'UAC · 09h00' },
               { label: 'Trajet', value: 'Ouidah → Grand-Popo' },
               { label: 'Prix', value: '6 000 FCFA' },
             ].map((info, i) => (
@@ -88,6 +95,55 @@ export default function VerifyPage() {
             ))}
           </div>
         </div>
+
+        {/* Modal Programme */}
+        {showModal && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+            onClick={() => setShowModal(false)}>
+            <div style={{ background: 'white', borderRadius: '24px 24px 0 0', padding: '28px 24px 40px', width: '100%', maxWidth: 430, boxShadow: '0 -10px 40px rgba(0,0,0,0.2)' }}
+              onClick={(e) => e.stopPropagation()}>
+
+              <div style={{ width: 40, height: 4, background: '#e5e7eb', borderRadius: 99, margin: '0 auto 20px' }}></div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+                <div>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>JEF 2026</p>
+                  <h2 style={{ margin: '4px 0 0', fontSize: 20, fontWeight: 900, color: '#111' }}>Programme du 13 Juin</h2>
+                </div>
+                <button onClick={() => setShowModal(false)}
+                  style={{ width: 36, height: 36, borderRadius: 10, border: '1.5px solid #e5e7eb', background: 'white', color: '#6b7280', fontSize: 16, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  ✕
+                </button>
+              </div>
+
+              {[
+                { heure: '09h00', titre: 'Depart UAC', detail: 'Rassemblement et depart depuis l\'UAC · Cotonou', color: '#308B0A', bg: '#f0fdf4', border: '#bbf7d0' },
+                { heure: '10h - 12h', titre: 'Escale Ouidah', detail: 'Arret et visite des sites touristiques de Ouidah', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+                { heure: '13h00', titre: 'Depart Grand-Popo', detail: 'Depart depuis Ouidah vers Grand-Popo', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+                { heure: '15h - 19h', titre: 'Fete a Grand-Popo', detail: 'Programme festif et activites a Grand-Popo', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
+                { heure: '20h - 21h', titre: 'Retour Cotonou', detail: 'Retour vers Cotonou · Fin de l\'evenement', color: '#374151', bg: '#f9fafb', border: '#e5e7eb' },
+              ].map((item, i) => (
+                <div key={i} style={{ display: 'flex', gap: 14, marginBottom: i < 4 ? 16 : 0 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 12, background: item.bg, border: `2px solid ${item.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <span style={{ fontSize: 9, fontWeight: 900, color: item.color, textAlign: 'center', lineHeight: 1.3 }}>{item.heure}</span>
+                    </div>
+                    {i < 4 && <div style={{ width: 2, height: 16, background: '#f3f4f6', margin: '4px 0' }}></div>}
+                  </div>
+                  <div style={{ paddingTop: 4 }}>
+                    <p style={{ margin: 0, fontWeight: 800, fontSize: 15, color: '#111' }}>{item.titre}</p>
+                    <p style={{ margin: '3px 0 0', fontSize: 13, color: '#6b7280', lineHeight: 1.5 }}>{item.detail}</p>
+                  </div>
+                </div>
+              ))}
+
+              <div style={{ marginTop: 24, background: 'linear-gradient(135deg, #308B0A, #1e5c06)', borderRadius: 14, padding: '14px 16px', textAlign: 'center' }}>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'white' }}>JEF 2026 — Le rendez-vous de l'annee !</p>
+                <p style={{ margin: '4px 0 0', fontSize: 12, color: 'rgba(255,255,255,0.8)' }}>Grand-Popo via Ouidah · 13 Juin 2026</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Recherche */}
         <div style={{ background: 'white', borderRadius: 20, padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
@@ -188,16 +244,16 @@ export default function VerifyPage() {
           </div>
         )}
 
-        {/* Message important — garder ticket */}
+        {/* Message important */}
         <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderLeft: '4px solid #ef4444', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
           <p style={{ margin: '0 0 6px', fontSize: 13, fontWeight: 800, color: '#dc2626' }}>
             IMPORTANT — Gardez bien votre ticket !
           </p>
-          <p style={{ margin: 0, fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
-            Votre ticket physique est indispensable le jour J. En cas de perte, contactez immédiatement un membre BUE ou écrivez en urgence sur WhatsApp :
+          <p style={{ margin: '0 0 10px', fontSize: 12, color: '#374151', lineHeight: 1.7 }}>
+            Votre ticket physique est indispensable le jour J. En cas de perte, contactez immediatement un membre BUE ou ecrivez en urgence sur WhatsApp :
           </p>
           <a href="https://wa.me/22995754733" target="_blank" rel="noopener noreferrer"
-            style={{ display: 'block', marginTop: 10, background: '#25D366', borderRadius: 10, padding: '10px 16px', textAlign: 'center', textDecoration: 'none' }}>
+            style={{ display: 'block', background: '#25D366', borderRadius: 10, padding: '10px 16px', textAlign: 'center', textDecoration: 'none' }}>
             <span style={{ color: 'white', fontSize: 14, fontWeight: 800 }}>WhatsApp : +229 95 75 47 33</span>
           </a>
         </div>
@@ -206,7 +262,7 @@ export default function VerifyPage() {
         <div style={{ background: 'white', borderRadius: 16, padding: '18px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
           <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>CONSEILS POUR LE JOUR J</p>
           {[
-            'Arrivez 30 minutes avant le depart',
+            'Arrivez 30 minutes avant le depart a l\'UAC',
             'Gardez votre ticket dans un endroit sur',
             'Presentez votre ticket au controleur',
             'La souche sera dechirée a chaque etape',
