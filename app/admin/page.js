@@ -646,6 +646,93 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* PRESENCE */}
+        {activeTab === 'presence' && (
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <p style={{ margin: 0, fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Mise a jour toutes les 30 secondes</p>
+              <button onClick={fetchData} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                Actualiser
+              </button>
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e' }}></div>
+                <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>
+                  EN LIGNE MAINTENANT — {vendeurs.filter(v => v.last_seen && (new Date() - new Date(v.last_seen)) < 60000).length} utilisateur(s)
+                </p>
+              </div>
+
+              {vendeurs.filter(v => v.last_seen && (new Date() - new Date(v.last_seen)) < 60000).length === 0 ? (
+                <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, textAlign: 'center', padding: '20px 0' }}>Aucun utilisateur connecte actuellement</p>
+              ) : (
+                vendeurs.filter(v => v.last_seen && (new Date() - new Date(v.last_seen)) < 60000).map((v, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: '1px solid #f3f4f6' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ width: 40, height: 40, background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 16, fontWeight: 800, color: '#308B0A' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div style={{ position: 'absolute', bottom: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#22c55e', border: '2px solid white' }}></div>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#111' }}>{v.full_name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>{v.last_action || v.role}</p>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ background: '#f0fdf4', borderRadius: 8, padding: '4px 10px', marginBottom: 2 }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: '#308B0A' }}>EN LIGNE</span>
+                      </div>
+                      <p style={{ margin: 0, fontSize: 10, color: '#9ca3af' }}>
+                        {new Date(v.last_seen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>HISTORIQUE DES CONNEXIONS</p>
+              {vendeurs.filter(v => v.last_seen).sort((a, b) => new Date(b.last_seen) - new Date(a.last_seen)).map((v, i) => {
+                const diff = new Date() - new Date(v.last_seen)
+                const isOnline = diff < 60000
+                const minutes = Math.floor(diff / 60000)
+                const hours = Math.floor(diff / 3600000)
+                const days = Math.floor(diff / 86400000)
+                let timeAgo = isOnline ? 'En ligne' : minutes < 60 ? `Il y a ${minutes} min` : hours < 24 ? `Il y a ${hours}h` : `Il y a ${days}j`
+                return (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < vendeurs.filter(v => v.last_seen).length - 1 ? '1px solid #f3f4f6' : 'none' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <div style={{ position: 'relative' }}>
+                        <div style={{ width: 38, height: 38, background: isOnline ? '#f0fdf4' : '#f9fafb', border: `2px solid ${isOnline ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: 14, fontWeight: 800, color: isOnline ? '#308B0A' : '#9ca3af' }}>{v.full_name?.charAt(0).toUpperCase()}</span>
+                        </div>
+                        <div style={{ position: 'absolute', bottom: -2, right: -2, width: 10, height: 10, borderRadius: '50%', background: isOnline ? '#22c55e' : '#d1d5db', border: '2px solid white' }}></div>
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 700, fontSize: 13, color: '#111' }}>{v.full_name}</p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>{v.role} · {v.last_action || 'Connexion'}</p>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: isOnline ? '#308B0A' : '#6b7280' }}>{timeAgo}</p>
+                      <p style={{ margin: '2px 0 0', fontSize: 10, color: '#9ca3af' }}>
+                        {new Date(v.last_seen).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })} · {new Date(v.last_seen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                )
+              })}
+              {vendeurs.filter(v => v.last_seen).length === 0 && (
+                <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, textAlign: 'center', padding: '20px 0' }}>Aucune connexion enregistree</p>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   )
