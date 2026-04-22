@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { usePresence } from '../lib/usePresence'
 
 export default function GestionnairePage() {
   const router = useRouter()
+  usePresence('Gestion vendeurs')
   const [vendeurs, setVendeurs] = useState([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)

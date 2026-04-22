@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { usePresence } from '../lib/usePresence'
 
 export default function SuperviseurPage() {
   const router = useRouter()
+  usePresence('Supervision BUE')
   const [stats, setStats] = useState({ total: 500, vendus: 0, embarques: 0, disponibles: 0 })
   const [vendeurs, setVendeurs] = useState([])
   const [loading, setLoading] = useState(true)

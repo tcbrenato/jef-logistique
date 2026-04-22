@@ -2,9 +2,11 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../lib/supabase'
+import { usePresence } from '../lib/usePresence'
 
 export default function VendeurPage() {
   const router = useRouter()
+  usePresence('Espace vendeur')
   const [vendeur, setVendeur] = useState(null)
   const [mode, setMode] = useState('individuel') // 'individuel' ou 'groupe'
   const [form, setForm] = useState({ serial_number: '', secret_key: '', client_name: '', client_phone: '' })
