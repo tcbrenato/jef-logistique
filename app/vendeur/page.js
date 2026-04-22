@@ -90,8 +90,8 @@ export default function VendeurPage() {
     if (!groupeForm.responsable || !groupeForm.telephone || !groupeForm.debut || !groupeForm.fin) {
       setMessage({ type: 'error', text: 'Veuillez remplir tous les champs' }); return
     }
-    const debut = parseInt(groupeForm.debut)
-    const fin = parseInt(groupeForm.fin)
+    const debut = parseInt(groupeForm.debut.includes('-') ? groupeForm.debut.split('-')[1] : groupeForm.debut)
+    const fin = parseInt(groupeForm.fin.includes('-') ? groupeForm.fin.split('-')[1] : groupeForm.fin)
     if (debut > fin) {
       setMessage({ type: 'error', text: 'Le ticket de debut doit etre inferieur au ticket de fin' }); return
     }
@@ -108,7 +108,8 @@ export default function VendeurPage() {
     let succes = 0
 
     for (let i = debut; i <= fin; i++) {
-      const serial = `JEF-${String(i).padStart(3, '0')}`
+      const prefix = groupeForm.debut.includes('-') ? groupeForm.debut.split('-')[0] : 'JEF'
+      const serial = `${prefix}-${String(i).padStart(3, '0')}`
       const { data: ticket } = await supabase
         .from('tickets')
         .select('*')
@@ -305,14 +306,14 @@ export default function VendeurPage() {
                   <div style={{ display: 'flex', gap: 10 }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.8 }}>DU NUMERO *</label>
-                      <input type="number" min="1" max="500" placeholder="Ex: 10" value={groupeForm.debut}
+                      <input type="text" placeholder="Ex: 10 ou TEST-001" value={groupeForm.debut}
                         onChange={(e) => setGroupeForm({ ...groupeForm, debut: e.target.value })}
                         style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '13px 14px', fontSize: 15, fontWeight: 700, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
                       />
                     </div>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.8 }}>AU NUMERO *</label>
-                      <input type="number" min="1" max="500" placeholder="Ex: 19" value={groupeForm.fin}
+                      <input type="text" placeholder="Ex: 19 ou TEST-030" value={groupeForm.fin}
                         onChange={(e) => setGroupeForm({ ...groupeForm, fin: e.target.value })}
                         style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '13px 14px', fontSize: 15, fontWeight: 700, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
                       />
@@ -322,7 +323,7 @@ export default function VendeurPage() {
                     <div style={{ marginTop: 12, background: '#f0fdf4', borderRadius: 10, padding: '10px 14px' }}>
                       <p style={{ margin: 0, fontSize: 13, color: '#16a34a', fontWeight: 700 }}>
                         {parseInt(groupeForm.fin) - parseInt(groupeForm.debut) + 1} ticket(s) —
-                        JEF-{String(groupeForm.debut).padStart(3, '0')} a JEF-{String(groupeForm.fin).padStart(3, '0')} —
+                        {groupeForm.debut.includes('-') ? groupeForm.debut : `JEF-${String(groupeForm.debut).padStart(3, '0')}`} a {groupeForm.fin.includes('-') ? groupeForm.fin : `JEF-${String(groupeForm.fin).padStart(3, '0')}`} —
                         {((parseInt(groupeForm.fin) - parseInt(groupeForm.debut) + 1) * 6000).toLocaleString()} FCFA
                       </p>
                     </div>
