@@ -171,8 +171,8 @@ export default function AdminDashboard() {
             Quitter
           </button>
         </div>
-        <div style={{ display: 'flex', gap: 2 }}>
-          {[['dashboard', 'Apercu'], ['vendeurs', 'Vendeurs'], ['tickets', 'Tickets'], ['equipe', 'Equipe']].map(([key, label]) => (
+        <div style={{ display: 'flex', gap: 2, overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {[['dashboard', 'Apercu'], ['vendeurs', 'Vendeurs'], ['tickets', 'Tickets'], ['equipe', 'Equipe'], ['presence', 'En ligne']].map(([key, label]) => (
             <button key={key} onClick={() => { setActiveTab(key); setSelectedVendeur(null); setEditMode(null) }} style={{
               flex: 1, padding: '11px 0', border: 'none', background: 'transparent',
               color: activeTab === key ? 'white' : 'rgba(255,255,255,0.5)',
