@@ -39,7 +39,7 @@ export default function AdminDashboard() {
   const fetchData = async () => {
     setLoading(true)
     const { data: tickets } = await supabase.from('tickets').select('*')
-    const { data: profiles } = await supabase.from('profiles').select('*').neq('role', 'admin')
+    const { data: profiles } = await supabase.from('profiles').select('*')
     if (tickets) {
       setStats({
         total: 500,
