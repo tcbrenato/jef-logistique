@@ -13,7 +13,7 @@ export function usePresence(action = 'Navigation') {
         .update({
           is_online: online,
           last_seen: new Date().toISOString(),
-          last_action: online ? action : 'Deconnecte'
+          last_action: online ? action : 'Hors ligne'
         })
         .eq('id', session.user.id)
     }
