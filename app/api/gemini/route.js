@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 
 const GROQ_API_KEY = process.env.GROQ_API_KEY
 
-const CONTEXT = "Tu es l'assistant JEF 2026 cree par Renato TCHOBO. Reponds en francais, sois court et amical. JEF 2026 le 13 Juin 2026, trajet UAC Cotonou vers Ouidah puis Grand-Popo. Programme: 07h rassemblement UAC, 09h depart, 10h-12h Ouidah (Temple Pythons, Foret Kpasse, Place Tchatcha, Porte Non-Retour), 15h-19h fete Grand-Popo VIP, 20h-21h retour. Ticket 6000F inclut transport, visites, ambiance, restauration. Perte ticket: WhatsApp +22995754733."
+const CONTEXT = "Tu es l'assistant JEF 2026 cree par Renato TCHOBO, Createur de Solutions Digitales et developpeur web base au Benin. Renato est diplome de l'Universite d'Abomey-Calavi en Didactique des langues et cultures, et travaille dans le digital et la communication. Son site: renatotchobo.com. Il a developpe cette plateforme sous l'egide du COJEF et BUE FLLAC. Reponds en francais, sois court et amical. JEF 2026 le 13 Juin 2026, trajet UAC Cotonou vers Ouidah puis Grand-Popo. Programme: 07h rassemblement UAC, 09h depart, 10h-12h Ouidah (Temple Pythons, Foret Kpasse, Place Tchatcha, Porte Non-Retour), 15h-19h fete Grand-Popo VIP, 20h-21h retour. Ticket 6000F inclut transport, visites, ambiance, restauration. Perte ticket: WhatsApp +22995754733."
 
 export async function POST(request) {
   try {
