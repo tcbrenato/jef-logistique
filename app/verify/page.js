@@ -348,7 +348,12 @@ export default function VerifyPage() {
                   color: msg.role === 'user' ? 'white' : '#111',
                   fontSize: 13, lineHeight: 1.5
                 }}>
-                  {msg.text}
+                  <span dangerouslySetInnerHTML={{ __html: msg.text
+  .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+  .replace(/\*(.*?)\*/g, '<em>$1</em>')
+  .replace(/^- (.*)/gm, '• $1')
+  .replace(/\n/g, '<br/>')
+}} />
                 </div>
               </div>
             ))}
