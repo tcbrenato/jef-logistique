@@ -20,6 +20,10 @@ export default function AdminDashboard() {
   const [editData, setEditData] = useState({})
   const [actionMsg, setActionMsg] = useState('')
   const [newPassword, setNewPassword] = useState('')
+  const [aiOpen, setAiOpen] = useState(false)
+  const [aiMessages, setAiMessages] = useState([{ role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA. Posez-moi des questions sur les ventes, les vendeurs ou les tickets !' }])
+  const [aiInput, setAiInput] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
 
   useEffect(() => { checkAdmin() }, [])
 
@@ -35,13 +39,6 @@ export default function AdminDashboard() {
       .subscribe()
     return () => supabase.removeChannel(channel)
   }
-
-  const [aiOpen, setAiOpen] = useState(false)
-const [aiMessages, setAiMessages] = useState([
-    { role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA. Posez-moi des questions sur les ventes, les vendeurs ou les tickets !' }
-  ])
-const [aiInput, setAiInput] = useState('')
-const [aiLoading, setAiLoading] = useState(false)
 
   const fetchData = async () => {
     setLoading(true)
@@ -153,16 +150,6 @@ const [aiLoading, setAiLoading] = useState(false)
     }
   }
 
-  const pct = Math.round((stats.vendus / stats.total) * 100)
-
-  if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ width: 44, height: 44, border: '3px solid #308B0A', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }}></div>
-        <p style={{ color: '#6b7280', fontWeight: 600, fontSize: 14 }}>Chargement...</p>
-      </div>
-    </div>
-  )
   const sendAiMessage = async () => {
     if (!aiInput.trim() || aiLoading) return
     const userMsg = aiInput.trim()
@@ -173,10 +160,7 @@ const [aiLoading, setAiLoading] = useState(false)
       const res = await fetch('/api/admin-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: userMsg,
-          history: aiMessages.map(m => ({ role: m.role, text: m.text }))
-        })
+        body: JSON.stringify({ message: userMsg, history: aiMessages.map(m => ({ role: m.role, text: m.text })) })
       })
       const data = await res.json()
       setAiMessages(prev => [...prev, { role: 'assistant', text: data.response }])
@@ -185,6 +169,17 @@ const [aiLoading, setAiLoading] = useState(false)
     }
     setAiLoading(false)
   }
+
+  const pct = Math.round((stats.vendus / stats.total) * 100)
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: '#f8f9fa', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ width: 44, height: 44, border: '3px solid #308B0A', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', margin: '0 auto 14px' }}></div>
+        <p style={{ color: '#6b7280', fontWeight: 600, fontSize: 14 }}>Chargement...</p>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f2f5', fontFamily: "'Segoe UI', system-ui, sans-serif", maxWidth: 430, margin: '0 auto' }}>
@@ -269,15 +264,18 @@ const [aiLoading, setAiLoading] = useState(false)
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #dc2626', background: 'white', color: '#dc2626', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
               Gerer les tickets perdus
             </button>
-
+            <button onClick={() => setAiOpen(true)}
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10, boxShadow: '0 4px 14px rgba(109,40,217,0.3)' }}>
+              🤖 Assistant IA — Analyser les donnees
+            </button>
             <button onClick={() => router.push('/admin/rapport')}
-              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
               Voir le rapport financier
             </button>
             <button onClick={() => router.push('/admin/codes')}
-  style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1e5c06', background: '#1e5c06', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 14 }}>
-  Consulter les codes secrets
-</button>
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #1e5c06', background: '#1e5c06', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
+              Consulter les codes secrets
+            </button>
           </div>
         )}
 
@@ -371,7 +369,6 @@ const [aiLoading, setAiLoading] = useState(false)
               </div>
             )}
 
-            {/* Carte profil */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', marginBottom: 14, boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
                 <div style={{ width: 56, height: 56, background: selectedVendeur.suspended ? '#fff5f5' : '#f0fdf4', border: `2px solid ${selectedVendeur.suspended ? '#fecaca' : '#bbf7d0'}`, borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -384,8 +381,6 @@ const [aiLoading, setAiLoading] = useState(false)
                   </p>
                 </div>
               </div>
-
-              {/* 4 cartes stats */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 <div style={{ background: '#f0fdf4', borderRadius: 12, padding: '14px', textAlign: 'center' }}>
                   <p style={{ margin: 0, fontSize: 10, fontWeight: 700, color: '#6b7280', letterSpacing: 0.5 }}>TICKETS VENDUS</p>
@@ -408,18 +403,12 @@ const [aiLoading, setAiLoading] = useState(false)
               </div>
             </div>
 
-            {/* ACTIONS */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>ACTIONS</p>
-
-              {/* Tickets remis */}
               <div style={{ background: '#f9fafb', borderRadius: 14, padding: '16px', marginBottom: 14 }}>
                 <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>TICKETS REMIS AU VENDEUR</p>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                  <input
-                    type="number" min="0" max="500"
-                    defaultValue={selectedVendeur.tickets_remis || 0}
-                    id="tickets-remis-input"
+                  <input type="number" min="0" max="500" defaultValue={selectedVendeur.tickets_remis || 0} id="tickets-remis-input"
                     style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 16, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
                   />
                   <button onClick={() => handleUpdateTicketsRemis(parseInt(document.getElementById('tickets-remis-input').value))}
@@ -474,7 +463,6 @@ const [aiLoading, setAiLoading] = useState(false)
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: `1.5px solid ${selectedVendeur.suspended ? '#86efac' : '#fde68a'}`, background: selectedVendeur.suspended ? '#f0fdf4' : '#fffbeb', color: selectedVendeur.suspended ? '#16a34a' : '#b45309', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginBottom: 10, textAlign: 'left' }}>
                 {selectedVendeur.suspended ? 'Reactiver le compte' : 'Suspendre le compte'}
               </button>
-
               <button onClick={() => handleDelete(selectedVendeur)}
                 style={{ width: '100%', padding: '13px', borderRadius: 12, border: '1.5px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 14, fontWeight: 700, cursor: 'pointer', textAlign: 'left' }}>
                 Supprimer definitivement le compte
@@ -491,8 +479,6 @@ const [aiLoading, setAiLoading] = useState(false)
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#16a34a' }}>{actionMsg}</p>
               </div>
             )}
-
-            {/* Membres BUE */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                 <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>MEMBRES BUE / SUPERVISEURS</p>
@@ -514,7 +500,6 @@ const [aiLoading, setAiLoading] = useState(false)
                   + Ajouter
                 </button>
               </div>
-
               {vendeurs.filter(v => v.role === 'superviseur').length === 0 ? (
                 <p style={{ color: '#9ca3af', fontSize: 14, textAlign: 'center', padding: '20px 0', margin: 0 }}>Aucun membre BUE enregistre</p>
               ) : (
@@ -526,18 +511,14 @@ const [aiLoading, setAiLoading] = useState(false)
                       </div>
                       <div>
                         <p style={{ margin: 0, fontWeight: 700, fontSize: 14, color: '#111' }}>{v.full_name} {v.prenom || ''}</p>
-                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>
-                          {v.poste || 'Poste non defini'} · {v.profil_complet ? 'Profil complet' : 'Profil incomplet'}
-                        </p>
+                        <p style={{ margin: '2px 0 0', fontSize: 11, color: '#6b7280' }}>{v.poste || 'Poste non defini'} · {v.profil_complet ? 'Profil complet' : 'Profil incomplet'}</p>
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => handleSuspend(v)}
-                        style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      <button onClick={() => handleSuspend(v)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                         {v.suspended ? 'Reactiver' : 'Suspendre'}
                       </button>
-                      <button onClick={() => handleDelete(v)}
-                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      <button onClick={() => handleDelete(v)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                         Supprimer
                       </button>
                     </div>
@@ -546,7 +527,6 @@ const [aiLoading, setAiLoading] = useState(false)
               )}
             </div>
 
-            {/* Gestionnaires */}
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GESTIONNAIRES</p>
               {vendeurs.filter(v => v.role === 'gestionnaire').length === 0 ? (
@@ -564,12 +544,10 @@ const [aiLoading, setAiLoading] = useState(false)
                       </div>
                     </div>
                     <div style={{ display: 'flex', gap: 6 }}>
-                      <button onClick={() => handleSuspend(v)}
-                        style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      <button onClick={() => handleSuspend(v)} style={{ padding: '6px 10px', borderRadius: 8, border: `1px solid ${v.suspended ? '#86efac' : '#fde68a'}`, background: v.suspended ? '#f0fdf4' : '#fffbeb', color: v.suspended ? '#16a34a' : '#b45309', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                         {v.suspended ? 'Reactiver' : 'Suspendre'}
                       </button>
-                      <button onClick={() => handleDelete(v)}
-                        style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                      <button onClick={() => handleDelete(v)} style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid #fecaca', background: '#fff5f5', color: '#dc2626', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
                         Supprimer
                       </button>
                     </div>
@@ -586,43 +564,27 @@ const [aiLoading, setAiLoading] = useState(false)
             <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
               <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GENERATION DES TICKETS</p>
               <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800, color: '#111' }}>500 tickets numerotes</h3>
-              <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
-                Genere les tickets JEF-001 a JEF-500 avec leurs codes secrets uniques.
-              </p>
+              <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>Genere les tickets JEF-001 a JEF-500 avec leurs codes secrets uniques.</p>
               <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
                 Generer les 500 tickets
               </button>
-
               <button onClick={async () => {
-                const { data: tickets } = await supabase
-                  .from('tickets')
-                  .select('serial_number, secret_key, status')
-                  .order('serial_number')
-                if (!tickets || tickets.length === 0) {
-                  alert('Aucun ticket a exporter. Generez d\'abord les tickets.')
-                  return
-                }
+                const { data: tickets } = await supabase.from('tickets').select('serial_number, secret_key, status').order('serial_number')
+                if (!tickets || tickets.length === 0) { alert('Aucun ticket a exporter.'); return }
                 let csv = 'Numero Ticket,Code Secret,Statut,QR Code URL\n'
-                tickets.forEach(t => {
-                  csv += `${t.serial_number},${t.secret_key},${t.status},https://jef-logistique.vercel.app/verify/${t.serial_number}\n`
-                })
+                tickets.forEach(t => { csv += `${t.serial_number},${t.secret_key},${t.status},https://jef-logistique.vercel.app/verify/${t.serial_number}\n` })
                 const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
                 const url = URL.createObjectURL(blob)
                 const a = document.createElement('a')
-                a.href = url
-                a.download = `codes-secrets-jef2026.csv`
-                a.click()
+                a.href = url; a.download = 'codes-secrets-jef2026.csv'; a.click()
                 URL.revokeObjectURL(url)
-              }}
-                style={{ width: '100%', padding: '15px', borderRadius: 14, border: '2px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 10 }}>
+              }} style={{ width: '100%', padding: '15px', borderRadius: 14, border: '2px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 10 }}>
                 Exporter les codes secrets (Excel)
               </button>
             </div>
 
             <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 16, padding: '16px 18px', marginBottom: 14 }}>
-              <p style={{ margin: 0, fontSize: 13, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>
-                Chaque ticket aura un numero serie unique et un code secret pour eviter la fraude.
-              </p>
+              <p style={{ margin: 0, fontSize: 13, color: '#92400e', fontWeight: 600, lineHeight: 1.5 }}>Chaque ticket aura un numero serie unique et un code secret pour eviter la fraude.</p>
             </div>
 
             <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
@@ -632,58 +594,29 @@ const [aiLoading, setAiLoading] = useState(false)
               <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>DU TICKET</label>
-                  <input type="number" min="1" max="500" defaultValue="1" id="ticket-debut"
-                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                  />
+                  <input type="number" min="1" max="500" defaultValue="1" id="ticket-debut" style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ flex: 1 }}>
                   <label style={{ display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6, letterSpacing: 0.5 }}>AU TICKET</label>
-                  <input type="number" min="1" max="500" defaultValue="100" id="ticket-fin"
-                    style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
-                  />
+                  <input type="number" min="1" max="500" defaultValue="100" id="ticket-fin" style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '11px 13px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }} />
                 </div>
               </div>
               <button onClick={async () => {
                 const debut = document.getElementById('ticket-debut').value
                 const fin = document.getElementById('ticket-fin').value
                 const btn = document.getElementById('btn-generate-pdf')
-                btn.textContent = 'Generation en cours...'
-                btn.disabled = true
-                const res = await fetch('/api/generate-tickets', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ debut: parseInt(debut), fin: parseInt(fin) })
-                })
+                btn.textContent = 'Generation en cours...'; btn.disabled = true
+                const res = await fetch('/api/generate-tickets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ debut: parseInt(debut), fin: parseInt(fin) }) })
                 if (res.ok) {
                   const blob = await res.blob()
                   const url = URL.createObjectURL(blob)
                   const a = document.createElement('a')
-                  a.href = url
-                  a.download = `tickets-jef2026-${debut}-${fin}.pdf`
-                  a.click()
+                  a.href = url; a.download = `tickets-jef2026-${debut}-${fin}.pdf`; a.click()
                   URL.revokeObjectURL(url)
-                } else {
-                  alert('Erreur lors de la generation')
-                }
-                btn.textContent = 'Generer le PDF'
-                btn.disabled = false
-              }}
-                id="btn-generate-pdf"
-                style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
+                } else { alert('Erreur lors de la generation') }
+                btn.textContent = 'Generer le PDF'; btn.disabled = false
+              }} id="btn-generate-pdf" style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
                 Generer le PDF des tickets
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* TICKETS */}
-        {activeTab === 'tickets' && (
-          <div>
-            <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
-              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GENERATION DES TICKETS</p>
-              <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800, color: '#111' }}>500 tickets numerotes</h3>
-              <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
-                Generer les 500 tickets
               </button>
             </div>
           </div>
@@ -694,9 +627,7 @@ const [aiLoading, setAiLoading] = useState(false)
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <p style={{ margin: 0, fontSize: 13, color: '#6b7280', fontWeight: 500 }}>Mise a jour toutes les 30 secondes</p>
-              <button onClick={fetchData} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                Actualiser
-              </button>
+              <button onClick={fetchData} style={{ padding: '8px 14px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Actualiser</button>
             </div>
 
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
@@ -706,7 +637,6 @@ const [aiLoading, setAiLoading] = useState(false)
                   EN LIGNE MAINTENANT — {vendeurs.filter(v => v.last_seen && (new Date() - new Date(v.last_seen)) < 60000).length} utilisateur(s)
                 </p>
               </div>
-
               {vendeurs.filter(v => v.last_seen && (new Date() - new Date(v.last_seen)) < 60000).length === 0 ? (
                 <p style={{ color: '#9ca3af', fontSize: 14, margin: 0, textAlign: 'center', padding: '20px 0' }}>Aucun utilisateur connecte actuellement</p>
               ) : (
@@ -728,9 +658,7 @@ const [aiLoading, setAiLoading] = useState(false)
                       <div style={{ background: '#f0fdf4', borderRadius: 8, padding: '4px 10px', marginBottom: 2 }}>
                         <span style={{ fontSize: 11, fontWeight: 700, color: '#308B0A' }}>EN LIGNE</span>
                       </div>
-                      <p style={{ margin: 0, fontSize: 10, color: '#9ca3af' }}>
-                        {new Date(v.last_seen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+                      <p style={{ margin: 0, fontSize: 10, color: '#9ca3af' }}>{new Date(v.last_seen).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </div>
                 ))
@@ -776,84 +704,54 @@ const [aiLoading, setAiLoading] = useState(false)
           </div>
         )}
 
-        {/* Modal Assistant IA Admin */}
-      {aiOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 430, height: '75vh', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.2)' }}>
-
-            {/* Header */}
-            <div style={{ background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', borderRadius: '24px 24px 0 0', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🤖</div>
-                <div>
-                  <p style={{ margin: 0, color: 'white', fontWeight: 800, fontSize: 14 }}>Assistant IA Admin</p>
-                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Donnees en temps reel · JEF 2026</p>
+        {/* Modal Assistant IA */}
+        {aiOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+            <div style={{ background: 'white', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 430, height: '75vh', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.2)' }}>
+              <div style={{ background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', borderRadius: '24px 24px 0 0', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🤖</div>
+                  <div>
+                    <p style={{ margin: 0, color: 'white', fontWeight: 800, fontSize: 14 }}>Assistant IA Admin</p>
+                    <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Donnees en temps reel · JEF 2026</p>
+                  </div>
                 </div>
+                <button onClick={() => setAiOpen(false)} style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 16, cursor: 'pointer' }}>✕</button>
               </div>
-              <button onClick={() => setAiOpen(false)}
-                style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 16, cursor: 'pointer' }}>
-                ✕
-              </button>
-            </div>
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              {aiMessages.map((msg, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                  <div style={{
-                    maxWidth: '85%', padding: '10px 14px',
-                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                    background: msg.role === 'user' ? '#6d28d9' : '#f3f4f6',
-                    color: msg.role === 'user' ? 'white' : '#111',
-                    fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap'
-                  }}>
-                    {msg.text}
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {aiMessages.map((msg, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                    <div style={{ maxWidth: '85%', padding: '10px 14px', borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px', background: msg.role === 'user' ? '#6d28d9' : '#f3f4f6', color: msg.role === 'user' ? 'white' : '#111', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {msg.text}
+                    </div>
                   </div>
-                </div>
-              ))}
-              {aiLoading && (
-                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                  <div style={{ background: '#f3f4f6', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', display: 'flex', gap: 4 }}>
-                    {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#9ca3af' }}></div>)}
+                ))}
+                {aiLoading && (
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <div style={{ background: '#f3f4f6', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', display: 'flex', gap: 4 }}>
+                      {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#9ca3af' }}></div>)}
+                    </div>
                   </div>
+                )}
+              </div>
+              {aiMessages.length === 1 && (
+                <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {['Bilan des ventes', 'Meilleur vendeur ?', 'Vendeurs sans ventes', 'Combien reste-t-il ?', 'Montant collecte ?'].map((q, i) => (
+                    <button key={i} onClick={() => setAiInput(q)} style={{ padding: '6px 12px', borderRadius: 20, border: '1px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{q}</button>
+                  ))}
                 </div>
               )}
-            </div>
-
-            {/* Questions rapides */}
-            {aiMessages.length === 1 && (
-              <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {[
-                  'Bilan des ventes',
-                  'Meilleur vendeur ?',
-                  'Vendeurs sans ventes',
-                  'Combien reste-t-il ?',
-                  'Montant collecte ?'
-                ].map((q, i) => (
-                  <button key={i} onClick={() => setAiInput(q)}
-                    style={{ padding: '6px 12px', borderRadius: 20, border: '1px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
-                    {q}
-                  </button>
-                ))}
+              <div style={{ padding: '12px 16px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8 }}>
+                <input type="text" placeholder="Posez votre question..." value={aiInput}
+                  onChange={(e) => setAiInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && sendAiMessage()}
+                  style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '10px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button onClick={sendAiMessage} disabled={aiLoading} style={{ width: 44, height: 44, borderRadius: 12, border: 'none', background: aiLoading ? '#d1d5db' : '#6d28d9', color: 'white', fontSize: 20, cursor: aiLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>→</button>
               </div>
-            )}
-
-            {/* Input */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8 }}>
-              <input type="text" placeholder="Posez votre question..."
-                value={aiInput}
-                onChange={(e) => setAiInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendAiMessage()}
-                style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '10px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
-              />
-              <button onClick={sendAiMessage} disabled={aiLoading}
-                style={{ width: 44, height: 44, borderRadius: 12, border: 'none', background: aiLoading ? '#d1d5db' : '#6d28d9', color: 'white', fontSize: 20, cursor: aiLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                →
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       </div>
     </div>
