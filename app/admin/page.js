@@ -270,15 +270,6 @@ const [aiLoading, setAiLoading] = useState(false)
               Gerer les tickets perdus
             </button>
 
-            <button onClick={() => setAiOpen(true)}
-              style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 10, boxShadow: '0 4px 14px rgba(109,40,217,0.3)' }}>
-              Assistant IA — Analyser les donnees
-            </button>
-            <button onClick={() => setAiOpen(true)}
-              style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10, boxShadow: '0 4px 14px rgba(109,40,217,0.3)' }}>
-              🤖 Assistant IA — Analyser les donnees
-            </button>
-
             <button onClick={() => router.push('/admin/rapport')}
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
               Voir le rapport financier
