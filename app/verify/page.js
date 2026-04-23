@@ -13,6 +13,7 @@ export default function VerifyPage() {
   const [chatMessages, setChatMessages] = useState([
     { role: 'assistant', text: 'Bonjour ! Je suis l\'assistant JEF 2026 créé par Rénato TCHOBO. Comment puis-je vous aider ?' }
   ])
+  const [showFlash, setShowFlash] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
 
@@ -31,6 +32,17 @@ export default function VerifyPage() {
     }, 1000)
     return () => clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (chatOpen) return
+    const timer = setInterval(() => {
+      setShowFlash(true)
+      setTimeout(() => setShowFlash(false), 3000)
+    }, 12000)
+    setShowFlash(true)
+    setTimeout(() => setShowFlash(false), 3000)
+    return () => clearInterval(timer)
+  }, [chatOpen])
 
   const handleVerify = async () => {
     if (!search.trim()) return
@@ -290,10 +302,20 @@ export default function VerifyPage() {
 
       {/* Bouton chat flottant */}
       {!chatOpen && (
-        <button onClick={() => setChatOpen(true)}
-          style={{ position: 'fixed', bottom: 24, right: 24, width: 56, height: 56, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg, #308B0A, #1e5c06)', color: 'white', fontSize: 24, cursor: 'pointer', boxShadow: '0 4px 20px rgba(48,139,10,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 400 }}>
-          💬
-        </button>
+        <div style={{ position: 'fixed', bottom: 24, right: 16, zIndex: 400, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          {showFlash && (
+            <div style={{ background: 'white', borderRadius: 14, padding: '10px 14px', boxShadow: '0 4px 20px rgba(0,0,0,0.15)', maxWidth: 200, animation: 'fadeIn 0.3s ease' }}>
+              <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#111', lineHeight: 1.4 }}>
+                💬 Posez-moi vos questions sur la JEF 2026 !
+              </p>
+              <div style={{ width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '8px solid white', position: 'absolute', bottom: -8, right: 28 }}></div>
+            </div>
+          )}
+          <button onClick={() => setChatOpen(true)}
+            style={{ width: 56, height: 56, borderRadius: '50%', border: 'none', background: 'linear-gradient(135deg, #308B0A, #1e5c06)', color: 'white', fontSize: 24, cursor: 'pointer', boxShadow: '0 4px 20px rgba(48,139,10,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            💬
+          </button>
+        </div>
       )}
 
       {/* Chat modal */}
