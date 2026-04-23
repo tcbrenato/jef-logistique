@@ -36,6 +36,13 @@ export default function AdminDashboard() {
     return () => supabase.removeChannel(channel)
   }
 
+  const [aiOpen, setAiOpen] = useState(false)
+const [aiMessages, setAiMessages] = useState([
+    { role: 'assistant', text: 'Bonjour ! Je suis votre assistant IA. Posez-moi des questions sur les ventes, les vendeurs ou les tickets !' }
+  ])
+const [aiInput, setAiInput] = useState('')
+const [aiLoading, setAiLoading] = useState(false)
+
   const fetchData = async () => {
     setLoading(true)
     const { data: tickets } = await supabase.from('tickets').select('*')
@@ -156,6 +163,28 @@ export default function AdminDashboard() {
       </div>
     </div>
   )
+  const sendAiMessage = async () => {
+    if (!aiInput.trim() || aiLoading) return
+    const userMsg = aiInput.trim()
+    setAiInput('')
+    setAiMessages(prev => [...prev, { role: 'user', text: userMsg }])
+    setAiLoading(true)
+    try {
+      const res = await fetch('/api/admin-ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsg,
+          history: aiMessages.map(m => ({ role: m.role, text: m.text }))
+        })
+      })
+      const data = await res.json()
+      setAiMessages(prev => [...prev, { role: 'assistant', text: data.response }])
+    } catch {
+      setAiMessages(prev => [...prev, { role: 'assistant', text: 'Erreur. Reessayez.' }])
+    }
+    setAiLoading(false)
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f0f2f5', fontFamily: "'Segoe UI', system-ui, sans-serif", maxWidth: 430, margin: '0 auto' }}>
@@ -239,6 +268,11 @@ export default function AdminDashboard() {
             <button onClick={() => router.push('/admin/tickets-perdus')}
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #dc2626', background: 'white', color: '#dc2626', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginBottom: 10 }}>
               Gerer les tickets perdus
+            </button>
+
+            <button onClick={() => setAiOpen(true)}
+              style={{ width: '100%', padding: '15px', borderRadius: 16, border: 'none', background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', color: 'white', fontSize: 15, fontWeight: 800, cursor: 'pointer', marginTop: 10, boxShadow: '0 4px 14px rgba(109,40,217,0.3)' }}>
+              Assistant IA — Analyser les donnees
             </button>
             <button onClick={() => router.push('/admin/rapport')}
               style={{ width: '100%', padding: '15px', borderRadius: 16, border: '2px solid #308B0A', background: 'white', color: '#308B0A', fontSize: 15, fontWeight: 800, cursor: 'pointer' }}>
@@ -732,6 +766,85 @@ export default function AdminDashboard() {
             </div>
           </div>
         )}
+
+        {/* Modal Assistant IA Admin */}
+      {aiOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: 'white', borderRadius: '24px 24px 0 0', width: '100%', maxWidth: 430, height: '75vh', display: 'flex', flexDirection: 'column', boxShadow: '0 -10px 40px rgba(0,0,0,0.2)' }}>
+
+            {/* Header */}
+            <div style={{ background: 'linear-gradient(135deg, #6d28d9, #4c1d95)', borderRadius: '24px 24px 0 0', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, background: 'rgba(255,255,255,0.2)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🤖</div>
+                <div>
+                  <p style={{ margin: 0, color: 'white', fontWeight: 800, fontSize: 14 }}>Assistant IA Admin</p>
+                  <p style={{ margin: 0, color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>Donnees en temps reel · JEF 2026</p>
+                </div>
+              </div>
+              <button onClick={() => setAiOpen(false)}
+                style={{ width: 32, height: 32, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', fontSize: 16, cursor: 'pointer' }}>
+                ✕
+              </button>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+              {aiMessages.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '85%', padding: '10px 14px',
+                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    background: msg.role === 'user' ? '#6d28d9' : '#f3f4f6',
+                    color: msg.role === 'user' ? 'white' : '#111',
+                    fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap'
+                  }}>
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+              {aiLoading && (
+                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                  <div style={{ background: '#f3f4f6', borderRadius: '16px 16px 16px 4px', padding: '12px 16px', display: 'flex', gap: 4 }}>
+                    {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#9ca3af' }}></div>)}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Questions rapides */}
+            {aiMessages.length === 1 && (
+              <div style={{ padding: '0 16px 8px', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {[
+                  'Bilan des ventes',
+                  'Meilleur vendeur ?',
+                  'Vendeurs sans ventes',
+                  'Combien reste-t-il ?',
+                  'Montant collecte ?'
+                ].map((q, i) => (
+                  <button key={i} onClick={() => setAiInput(q)}
+                    style={{ padding: '6px 12px', borderRadius: 20, border: '1px solid #6d28d9', background: 'white', color: '#6d28d9', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>
+                    {q}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Input */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid #f3f4f6', display: 'flex', gap: 8 }}>
+              <input type="text" placeholder="Posez votre question..."
+                value={aiInput}
+                onChange={(e) => setAiInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && sendAiMessage()}
+                style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '10px 14px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box' }}
+              />
+              <button onClick={sendAiMessage} disabled={aiLoading}
+                style={{ width: 44, height: 44, borderRadius: 12, border: 'none', background: aiLoading ? '#d1d5db' : '#6d28d9', color: 'white', fontSize: 20, cursor: aiLoading ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

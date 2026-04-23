@@ -92,4 +92,3 @@ export async function POST(request) {
     console.error(err)
     return NextResponse.json({ response: 'Erreur technique. WhatsApp : +22995754733' })
   }
-}
