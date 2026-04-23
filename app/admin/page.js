@@ -680,6 +680,19 @@ const [aiLoading, setAiLoading] = useState(false)
           </div>
         )}
 
+        {/* TICKETS */}
+        {activeTab === 'tickets' && (
+          <div>
+            <div style={{ background: 'white', borderRadius: 20, padding: '24px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)', marginBottom: 14 }}>
+              <p style={{ margin: '0 0 4px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>GENERATION DES TICKETS</p>
+              <h3 style={{ margin: '0 0 10px', fontSize: 18, fontWeight: 800, color: '#111' }}>500 tickets numerotes</h3>
+              <button onClick={generateTickets} style={{ width: '100%', padding: '15px', borderRadius: 14, border: 'none', background: '#308B0A', color: 'white', fontSize: 15, fontWeight: 700, cursor: 'pointer', boxShadow: '0 4px 14px rgba(48,139,10,0.3)' }}>
+                Generer les 500 tickets
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* PRESENCE */}
         {activeTab === 'presence' && (
           <div>
