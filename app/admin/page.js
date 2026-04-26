@@ -405,6 +405,46 @@ export default function AdminDashboard() {
 
             <div style={{ background: 'white', borderRadius: 20, padding: '22px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
               <p style={{ margin: '0 0 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>ACTIONS</p>
+
+              {/* Plage attribuee */}
+              <div style={{ background: '#f9fafb', borderRadius: 14, padding: '16px', marginBottom: 14 }}>
+                <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>PLAGE DE TICKETS ATTRIBUEE</p>
+                {selectedVendeur.ticket_debut && selectedVendeur.ticket_fin && (
+                  <p style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 800, color: '#308B0A' }}>
+                    JEF-{String(selectedVendeur.ticket_debut).padStart(3,'0')} → JEF-{String(selectedVendeur.ticket_fin).padStart(3,'0')}
+                    <span style={{ fontSize: 12, color: '#6b7280', fontWeight: 500 }}> ({selectedVendeur.ticket_fin - selectedVendeur.ticket_debut + 1} tickets)</span>
+                  </p>
+                )}
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#374151', marginBottom: 4 }}>DU TICKET</label>
+                    <input type="number" min="1" max="500" defaultValue={selectedVendeur.ticket_debut || ''} id="ticket-debut-vendeur" placeholder="Ex: 1"
+                      style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#374151', marginBottom: 4 }}>AU TICKET</label>
+                    <input type="number" min="1" max="500" defaultValue={selectedVendeur.ticket_fin || ''} id="ticket-fin-vendeur" placeholder="Ex: 50"
+                      style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 12px', fontSize: 15, fontWeight: 700, outline: 'none', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+                <button onClick={async () => {
+                  const debut = parseInt(document.getElementById('ticket-debut-vendeur').value)
+                  const fin = parseInt(document.getElementById('ticket-fin-vendeur').value)
+                  if (!debut || !fin || debut > fin) { setActionMsg('Plage invalide'); return }
+                  const { error } = await supabase.from('profiles').update({ ticket_debut: debut, ticket_fin: fin }).eq('id', selectedVendeur.id)
+                  if (!error) {
+                    setActionMsg(`Plage mise a jour : JEF-${String(debut).padStart(3,'0')} a JEF-${String(fin).padStart(3,'0')}`)
+                    setSelectedVendeur({ ...selectedVendeur, ticket_debut: debut, ticket_fin: fin })
+                    fetchData()
+                    setTimeout(() => setActionMsg(''), 2000)
+                  }
+                }} style={{ width: '100%', padding: '11px', borderRadius: 10, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer', marginTop: 10 }}>
+                  Sauvegarder la plage
+                </button>
+              </div>
+
               <div style={{ background: '#f9fafb', borderRadius: 14, padding: '16px', marginBottom: 14 }}>
                 <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>TICKETS REMIS AU VENDEUR</p>
                 <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
