@@ -16,6 +16,8 @@ export default function VerifyPage() {
   const [showFlash, setShowFlash] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [ctrlCode, setCtrlCode] = useState('')
+  const [manualName, setManualName] = useState('')
 
   useEffect(() => {
     const target = new Date('2026-06-13T09:00:00')
@@ -263,9 +265,17 @@ export default function VerifyPage() {
 
         {/* Ticket DISPONIBLE */}
         {ticket && ticket.status === 'disponible' && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: 16, padding: '20px', textAlign: 'center', marginBottom: 14 }}>
-            <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: '#b45309' }}>Ticket non enregistre</p>
-            <p style={{ margin: 0, fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>Ce ticket existe mais n'a pas encore ete vendu. Contactez votre vendeur.</p>
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #f59e0b', borderRadius: 16, padding: '20px', textAlign: 'center', marginBottom: 10 }}>
+              <p style={{ margin: '0 0 6px', fontSize: 16, fontWeight: 800, color: '#b45309' }}>Ticket non enregistre</p>
+              <p style={{ margin: 0, fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>Ce ticket existe mais n a pas encore ete vendu sur la plateforme.</p>
+            </div>
+            <div style={{ background: 'white', borderRadius: 16, padding: '20px', boxShadow: '0 1px 8px rgba(0,0,0,0.06)' }}>
+              <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700, color: '#9ca3af', letterSpacing: 1 }}>CONTROLEUR — VALIDATION MANUELLE</p>
+              <input type="password" placeholder="Code controleur" value={ctrlCode} onChange={(e) => setCtrlCode(e.target.value)} style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '12px 16px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+              <input type="text" placeholder="Nom du participant" value={manualName} onChange={(e) => setManualName(e.target.value)} style={{ width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: '12px 16px', fontSize: 14, background: '#fafafa', outline: 'none', boxSizing: 'border-box', marginBottom: 10 }} />
+              <button onClick={async () => { if (ctrlCode !== 'TCB2026') { alert('Code controleur incorrect'); return } if (!manualName.trim()) { alert('Entrez le nom du participant'); return } const { error } = await supabase.from('tickets').update({ status: 'vendu', client_name: manualName.trim(), sold_at: new Date().toISOString() }).eq('serial_number', ticket.serial_number); if (!error) { alert('Ticket valide !'); setTicket({ ...ticket, status: 'vendu', client_name: manualName.trim() }) } else { alert('Erreur') } }} style={{ width: '100%', padding: '14px', borderRadius: 12, border: 'none', background: '#308B0A', color: 'white', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>Valider manuellement</button>
+            </div>
           </div>
         )}
 
